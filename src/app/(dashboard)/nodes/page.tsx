@@ -7,11 +7,11 @@ import DeviceCard from "@/components/nodes/device-card";
 
 export default function NodesPage() {
   const router = useRouter();
-  const { nodes, loading } = useMotorNodes();
+  const { nodes, loading, refetch } = useMotorNodes();
 
   return (
     <div>
-      <FilterBar />
+      <FilterBar onDeviceRegistered={refetch} nodeCount={nodes.length} />
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
         {loading ? (
           <p className="col-span-full text-on-surface-variant font-mono text-[14px]">Loading nodes...</p>
