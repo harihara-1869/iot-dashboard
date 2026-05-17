@@ -173,6 +173,124 @@ npx tsx supabase/seed.ts  # Seed database with test data
 | `diagnostics_logs` | System health check history |
 | `terminal_logs` | Command history per device |
 
+## Firmware Design (ESP32 / MCU)
+
+The system uses **edge-native analysis** — each motor node runs self-diagnostics locally on the MCU and reports status + telemetry to the cloud. The dashboard receives and displays the results; it does not perform the analysis.
+
+### Architecture
+
+```
+┌─────────────────────────────┐     MQTT (SAS Token)     ┌──────────────────────┐
+│  ESP32 / MCU (Node)         │ ◄────────────────────── ► │  Azure IoT Hub       │
+│                             │                           │                      │
+│  ┌───────────────────────┐  │                           │  ┌────────────────┐  │
+│  │ Sensor Read Loop      │  │                           │  │ Device Registry │  │
+│  │  - RPM (hall sensor)  │  │                           │  └────────────────┘  │
+│  │  - Temperature (RTD)  │  │                           │  ┌────────────────┐  │
+│  │  - Vibration (IMU)    │  │                           │  │ MQTT Broker    │──► Supabase
+│  │  - Current (ACS712)   │  │                           │  └────────────────┘  │  (Realtime)
+│  │  - Voltage divider    │  │                           └──────────────────────┘
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │ Local Analysis Engine │  │
+│  │  - Threshold checks   │  │
+│  │  - Anomaly detection  │  │
+│  │  - Status evaluation  │  │
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+```
+
+### MQTT Telemetry Topic
+
+Each device publishes a JSON payload every **5 seconds** to:
+
+```
+devices/{deviceId}/messages/events/
+```
+
+### Telemetry Payload Schema
+
+```json
+{
+  "device_id": "esp32-production-motor-44qcpd",
+  "timestamp": "2025-05-17T14:30:00Z",
+  "rpm": 3450.0,
+  "temperature_c": 42.5,
+  "vibration_mms": 1.2,
+  "current_a": 12.1,
+  "voltage_v": 220.4,
+  "status": "ok",
+  "status_message": "All parameters within nominal range"
+}
+```
+
+### Status Codes
+
+The node performs on-device analysis and sends one of:
+
+| Status | Meaning | Dashboard Badge |
+|---|---|---|
+| `ok` | All sensors nominal, no anomalies | Active (green) |
+| `warning` | Parameter approaching threshold (e.g. temp ±5°C from normal) | Maintenance Required (amber) |
+| `critical` | Threshold exceeded or sensor failure | Maintenance Required (red) |
+| `idle` | Motor stopped but healthy | Idle (orange) |
+
+### On-Device Analysis Logic (Pseudocode)
+
+```cpp
+// Runs every 5-second loop on the ESP32
+void analyze_and_report() {
+  float rpm     = read_hall_sensor();
+  float temp    = read_rtd();
+  float vib     = read_imu_rms();
+  float current = read_acs712();
+  float voltage = read_voltage_divider();
+
+  String status = "ok";
+  String message = "All parameters within nominal range";
+
+  // Threshold checks (configurable per motor type)
+  if (temp > TEMP_CRITICAL_THRESHOLD || vib > VIB_CRITICAL_THRESHOLD) {
+    status = "critical";
+    message = "Critical threshold exceeded";
+  } else if (temp > TEMP_WARN_THRESHOLD || vib > VIB_WARN_THRESHOLD) {
+    status = "warning";
+    message = "Parameter approaching warning threshold";
+  } else if (rpm == 0) {
+    status = "idle";
+    message = "Motor stopped";
+  }
+
+  // Build and publish JSON payload over MQTT
+  publish_telemetry(rpm, temp, vib, current, voltage, status, message);
+}
+```
+
+### MQTT Authentication (SAS Token)
+
+The device authenticates to Azure IoT Hub using a **Shared Access Signature (SAS) token** derived from the primary key. The SAS token is generated once on the MCU from the credentials received during device registration:
+
+```
+Host:       motor-predictor-hub.azure-devices.net
+Device ID:  esp32-production-motor-44qcpd
+Username:   {host}/{deviceId}/?api-version=2021-04-12
+Password:   SharedAccessSignature sr={host}%2Fdevices%2F{deviceId}&sig={hashedKey}&se={expiry}
+```
+
+Use the [Azure IoT Hub MQTT](https://learn.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support) protocol directly — no Azure SDK required on the MCU. A lightweight implementation using `PubSubClient` (Arduino) or `esp-mqtt` (ESP-IDF) is sufficient.
+
+### Data Flow
+
+1. ESP32 reads sensors → runs local analysis → determines status
+2. Publishes telemetry JSON over MQTT to Azure IoT Hub every 5 seconds
+3. IoT Hub routes messages to a consumer that writes to `telemetry_live` table
+4. Supabase Realtime pushes new rows to the dashboard UI
+5. Dashboard KPI cards, charts, and device status badges update live
+
 ## Authentication
 
 Operator ID = Supabase email, Access Key = Supabase password. Auth state is managed via `@supabase/ssr` with a client-side auth hook. The middleware redirects unauthenticated users to `/login`. Logout clears the session and returns to the login screen.
+
+## License
+
+GNU General Public License v3.0 — see [LICENSE](./LICENSE).
