@@ -1,0 +1,243 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Motor Detail - Stepper Motor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#c6c6c9",
+                        "primary": "#000101",
+                        "on-secondary-fixed": "#002114",
+                        "on-background": "#0b1c30",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#838486",
+                        "surface-variant": "#d3e4fe",
+                        "surface-bright": "#f8f9ff",
+                        "on-secondary-container": "#00714e",
+                        "on-tertiary-fixed": "#2f1500",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "secondary-container": "#82f5c1",
+                        "on-surface": "#0b1c30",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#c6c6c9",
+                        "surface": "#f8f9ff",
+                        "outline-variant": "#c5c6ca",
+                        "primary-fixed": "#e2e2e5",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#2f1500",
+                        "surface-tint": "#5d5e61",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#454749",
+                        "on-secondary-fixed-variant": "#005137",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary": "#006c4a",
+                        "background": "#f8f9ff",
+                        "primary-container": "#1a1c1e",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-surface-variant": "#44474a",
+                        "secondary-fixed-dim": "#68dba9",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-tertiary-container": "#c86c00",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "surface-container": "#e5eeff",
+                        "secondary-fixed": "#85f8c4",
+                        "inverse-surface": "#213145",
+                        "outline": "#75777a",
+                        "error": "#ba1a1a",
+                        "tertiary": "#010000",
+                        "tertiary-fixed": "#ffdcc3",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#1a1c1e",
+                        "surface-container-high": "#dce9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "margin-mobile": "16px",
+                        "max-width": "1440px",
+                        "unit": "4px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "data-lg": ["JetBrains Mono"],
+                        "label-caps": ["JetBrains Mono"],
+                        "display-lg-mobile": ["Inter"],
+                        "data-md": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "data-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "data-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #F8FAFC; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .data-card {
+            background-color: #ffffff;
+            border: 1px solid #E2E8F0;
+        }
+        
+        @keyframes float-anim-1 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(12px, -15px); }
+            66% { transform: translate(-10px, 14px); }
+        }
+        @keyframes float-anim-2 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(-15px, 12px); }
+            66% { transform: translate(14px, -10px); }
+        }
+        @keyframes float-anim-3 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(15px, 15px); }
+            66% { transform: translate(-12px, -12px); }
+        }
+        
+        .floating-tile-1 { animation: float-anim-1 7s ease-in-out infinite; }
+        .floating-tile-2 { animation: float-anim-2 8s ease-in-out infinite; }
+        .floating-tile-3 { animation: float-anim-3 9s ease-in-out infinite; }
+    </style>
+</head>
+<body class="font-body-lg text-on-background antialiased flex">
+<!-- SideNavBar (Suppressed due to Contextual State Rules - this is a details page) -->
+<!-- Navigation shell is excluded as this represents a focused detail view, not a top-level destination -->
+<!-- TopNavBar -->
+<div class="fixed top-0 left-0 right-0 h-16 bg-surface border-b border-outline-variant z-40 flex justify-between items-center px-margin-desktop">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="font-headline-md text-primary">Stepper Motor - Motor Room</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-all">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-all">help_outline</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-all">account_circle</span>
+</div>
+</div>
+<!-- Main Canvas -->
+<main class="mt-16 w-full max-w-[1440px] mx-auto p-margin-desktop flex flex-col gap-[24px]">
+<!-- Header Controls -->
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-4">
+<select class="bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-2 font-body-sm text-on-surface focus:border-primary focus:ring-0">
+<option>Stepper Motor (Motor Room)</option>
+<option>Induction Motor</option>
+<option>Stepper Motor (Control Panel)</option>
+</select>
+</div>
+<div class="flex gap-4">
+<button class="bg-surface-container-lowest border border-outline-variant text-on-surface px-6 py-2 rounded-DEFAULT font-body-sm hover:bg-surface-container-low transition-colors border-b-2">Calibrate</button>
+<button class="bg-error text-on-error px-6 py-2 rounded-DEFAULT font-body-sm font-bold hover:bg-on-error-container transition-colors border-b-2 border-[#93000a]">Emergency Stop</button>
+</div>
+</div>
+<!-- Central Visualization Area -->
+<div class="relative w-full flex flex-col items-center justify-center min-h-[500px] overflow-hidden py-10">
+<!-- Motor Image -->
+<div class="relative z-10 w-full max-w-lg">
+<img alt="NEMA 17 Stepper Motor" class="w-full h-auto object-contain" src="https://lh3.googleusercontent.com/aida/ADBb0uhxb3d990zYoyeJwV7Pl4pk9_jTypUUJMVBjFIKYjiPsAl6Rgw9u7vc8qfm6tW2h62O745WBuhmgXmwiADzrp0DV5KZ9HMjUNQGg2V8rssH8FtEB-SZfpgGwFICyG5xjneEN3jr0RQnwKUiKkDx14td4TbgD7VT_2WNWC6159l1rRdegWEHTIO2B72TcEpU7AMGMCuf8JVbOPF5m-I_vOZ4AN7Ag26XASzyCZiAHgdZ4KueDeA6hmbiNj0">
+<!-- Status Overlay -->
+<div class="absolute bottom-[-20px] left-1/2 transform -translate-x-1/2 glass-panel px-6 py-2 rounded-full flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="font-data-md text-on-surface">Status: Active/Normal</span>
+</div>
+</div>
+<!-- Floating Data Box: Vibration -->
+<div class="absolute top-[20%] left-[20%] flex flex-col gap-1 z-20 floating-tile-1 border border-outline-variant p-2 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-on-surface-variant uppercase">Vibration</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">vibration</span>
+</div>
+<div class="font-data-lg text-primary">1.2 <span class="font-data-md text-on-surface-variant">mm/s</span></div>
+</div>
+<!-- Floating Data Box: Temperature -->
+<div class="absolute top-[25%] right-[20%] flex flex-col gap-1 items-end z-20 floating-tile-2 border border-outline-variant p-2 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-on-surface-variant uppercase">Temperature</span>
+<span class="material-symbols-outlined text-secondary text-[16px]">thermostat</span>
+</div>
+<div class="font-data-lg text-primary">42.5 <span class="font-data-md text-on-surface-variant">°C</span></div>
+</div>
+<!-- Floating Data Box: Current -->
+<div class="absolute bottom-[20%] left-[25%] flex flex-col gap-1 z-20 floating-tile-3 border border-outline-variant p-2 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-on-surface-variant uppercase">Current Draw</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">electric_bolt</span>
+</div>
+<div class="font-data-lg text-primary">1.5 <span class="font-data-md text-on-surface-variant">A</span></div>
+</div>
+<!-- Background Grid (Visual Accent) -->
+<div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(#c5c6ca 1px, transparent 1px); background-size: 24px 24px;"></div>
+</div>
+<!-- Telemetry Graphs Section -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mt-[24px]">
+<!-- Graph Card 1 -->
+<div class="data-card rounded-lg p-4 flex flex-col gap-4 h-64">
+<div class="flex justify-between items-center">
+<h3 class="font-label-caps text-on-surface-variant uppercase">Vibration History</h3>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">show_chart</span>
+</div>
+<!-- Placeholder for Graph -->
+<div class="flex-1 bg-surface-container-low rounded flex items-center justify-center border border-dashed border-outline-variant">
+<span class="font-body-sm text-on-surface-variant">Chart Visualization Component</span>
+</div>
+</div>
+<!-- Graph Card 2 -->
+<div class="data-card rounded-lg p-4 flex flex-col gap-4 h-64">
+<div class="flex justify-between items-center">
+<h3 class="font-label-caps text-on-surface-variant uppercase">Temperature Trends</h3>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">show_chart</span>
+</div>
+<!-- Placeholder for Graph -->
+<div class="flex-1 bg-surface-container-low rounded flex items-center justify-center border border-dashed border-outline-variant">
+<span class="font-body-sm text-on-surface-variant">Chart Visualization Component</span>
+</div>
+</div>
+<!-- Graph Card 3 -->
+<div class="data-card rounded-lg p-4 flex flex-col gap-4 h-64">
+<div class="flex justify-between items-center">
+<h3 class="font-label-caps text-on-surface-variant uppercase">Current Draw</h3>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">show_chart</span>
+</div>
+<!-- Placeholder for Graph -->
+<div class="flex-1 bg-surface-container-low rounded flex items-center justify-center border border-dashed border-outline-variant">
+<span class="font-body-sm text-on-surface-variant">Chart Visualization Component</span>
+</div>
+</div>
+</div>
+</main>
+
+
+</body></html>

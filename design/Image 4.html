@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nodes Inventory - Kinetic Industrial</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-fixed": "#e2e2e5",
+            "on-tertiary-container": "#c86c00",
+            "on-primary-container": "#838486",
+            "surface-container-highest": "#d3e4fe",
+            "on-primary-fixed-variant": "#454749",
+            "secondary": "#006c4a",
+            "on-secondary-fixed-variant": "#005137",
+            "inverse-primary": "#c6c6c9",
+            "on-secondary-container": "#00714e",
+            "primary": "#000101",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "secondary-fixed": "#85f8c4",
+            "surface-container-low": "#eff4ff",
+            "surface": "#f8f9ff",
+            "tertiary-fixed": "#ffdcc3",
+            "secondary-container": "#82f5c1",
+            "error-container": "#ffdad6",
+            "surface-container-lowest": "#ffffff",
+            "on-background": "#0b1c30",
+            "inverse-surface": "#213145",
+            "surface-container": "#e5eeff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-primary": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "tertiary-container": "#2f1500",
+            "on-secondary": "#ffffff",
+            "surface-variant": "#d3e4fe",
+            "tertiary-fixed-dim": "#ffb77d",
+            "on-error-container": "#93000a",
+            "surface-container-high": "#dce9ff",
+            "on-tertiary-fixed": "#2f1500",
+            "outline": "#75777a",
+            "primary-fixed-dim": "#c6c6c9",
+            "on-primary-fixed": "#1a1c1e",
+            "background": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "on-surface": "#0b1c30",
+            "secondary-fixed-dim": "#68dba9",
+            "tertiary": "#010000",
+            "surface-bright": "#f8f9ff",
+            "primary-container": "#1a1c1e",
+            "on-surface-variant": "#44474a",
+            "on-secondary-fixed": "#002114",
+            "outline-variant": "#c5c6ca",
+            "error": "#ba1a1a",
+            "on-error": "#ffffff",
+            "surface-tint": "#5d5e61"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "gutter": "16px",
+            "margin-desktop": "32px",
+            "unit": "4px",
+            "max-width": "1440px",
+            "margin-mobile": "16px"
+          },
+          "fontFamily": {
+            "headline-md": ["Inter"],
+            "data-md": ["JetBrains Mono"],
+            "data-lg": ["JetBrains Mono"],
+            "display-lg-mobile": ["Inter"],
+            "body-lg": ["Inter"],
+            "label-caps": ["JetBrains Mono"],
+            "display-lg": ["Inter"],
+            "body-sm": ["Inter"]
+          },
+          "fontSize": {
+            "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+            "data-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+            "data-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+            "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+            "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .fluid-indicator {
+      background: linear-gradient(45deg, #0b1c30, #1a1c1e, #44474a);
+      background-size: 200% 200%;
+    }
+    .glass-effect {
+      backdrop-filter: blur(12px);
+      background-color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-lg antialiased">
+<!-- SideNavBar Component -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant bg-surface flex flex-col p-gutter z-50">
+<div class="mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Control Panel</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Precision Motor Systems</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-body-lg text-body-lg">Home</span>
+</a>
+<!-- ACTIVE TAB: Nodes -->
+<a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-lg font-bold" href="#">
+<span class="material-symbols-outlined" data-icon="settings_input_component" style="font-variation-settings: 'FILL' 1;">settings_input_component</span>
+<span class="font-body-lg text-body-lg">Nodes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="monitor_heart">monitor_heart</span>
+<span class="font-body-lg text-body-lg">Health</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="font-body-lg text-body-lg">Terminal</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="restart_alt">restart_alt</span>
+<span class="font-body-lg text-body-lg">Reboot</span>
+</a>
+</nav>
+<div class="pt-4 border-t border-outline-variant">
+<div class="flex items-center gap-3 mb-6 px-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary">account_circle</span>
+</div>
+<div class="overflow-hidden">
+<p class="font-body-sm font-bold truncate">Operator 702</p>
+<p class="text-xs text-on-surface-variant">Shift Alpha</p>
+</div>
+</div>
+<button class="w-full flex items-center gap-3 px-4 py-3 text-error hover:bg-error-container/20 transition-colors rounded-lg">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-body-lg text-body-lg">Logout</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-40 bg-surface h-16 border-b border-outline-variant flex justify-between items-center px-margin-desktop">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-primary">Industrial Motor Control</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<span class="absolute inset-y-0 left-3 flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded text-body-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none w-64" placeholder="Global search..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-all" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-all" data-icon="help_outline">help_outline</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-all" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-margin-desktop max-w-max-width mx-auto">
+<!-- Header & Filter Section -->
+<section class="mb-8">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary mb-1">Nodes Inventory</h2>
+<p class="font-body-sm text-on-surface-variant">Total active system components: 142</p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Filter by Status</label>
+<select class="bg-white border border-outline-variant rounded px-3 py-2 text-body-sm min-w-[120px] focus:ring-1 focus:ring-primary outline-none">
+<option>All Statuses</option>
+<option>Active</option>
+<option>Idle</option>
+<option>Maintenance</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Device Type</label>
+<select class="bg-white border border-outline-variant rounded px-3 py-2 text-body-sm min-w-[120px] focus:ring-1 focus:ring-primary outline-none">
+<option>All Types</option>
+<option>Stepper</option>
+<option>Induction</option>
+<option>Cooling</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Room</label>
+<select class="bg-white border border-outline-variant rounded px-3 py-2 text-body-sm min-w-[100px] focus:ring-1 focus:ring-primary outline-none">
+<option>All Rooms</option>
+<option>Bay 01</option>
+<option>Room 4</option>
+<option>HVAC Zone</option>
+</select>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 rounded font-body-sm self-end hover:opacity-90 transition-opacity flex items-center gap-2 h-[42px]">
+<span class="material-symbols-outlined text-[18px]">add</span>
+              Register New Node
+            </button>
+</div>
+</div>
+</section>
+<!-- Device Cards Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+<!-- Card 1: Featured Image -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="relative h-48 bg-surface-container overflow-hidden">
+<img alt="NEMA 17 Stepper Motor" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0uhxb3d990zYoyeJwV7Pl4pk9_jTypUUJMVBjFIKYjiPsAl6Rgw9u7vc8qfm6tW2h62O745WBuhmgXmwiADzrp0DV5KZ9HMjUNQGg2V8rssH8FtEB-SZfpgGwFICyG5xjneEN3jr0RQnwKUiKkDx14td4TbgD7VT_2WNWC6159l1rRdegWEHTIO2B72TcEpU7AMGMCuf8JVbOPF5m-I_vOZ4AN7Ag26XASzyCZiAHgdZ4KueDeA6hmbiNj0"/>
+<div class="absolute top-3 right-3">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary/10 text-on-secondary-container text-[10px] font-bold uppercase tracking-wider border border-secondary/20">
+                Active
+              </span>
+</div>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Room 4 Stepper</p>
+<h3 class="font-body-lg font-bold text-primary">NEMA-17-Precision</h3>
+</div>
+<span class="font-data-md text-data-md text-on-surface-variant">MOT-17-A</span>
+</div>
+<div class="grid grid-cols-2 gap-y-4 mb-6">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Voltage</p>
+<p class="font-data-md text-data-md">12.0 V DC</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Rated Torque</p>
+<p class="font-data-md text-data-md">0.45 Nm</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Max RPM</p>
+<p class="font-data-md text-data-md">3000</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">IP Rating</p>
+<p class="font-data-md text-data-md">IP54</p>
+</div>
+</div>
+<div class="mt-auto grid grid-cols-2 gap-2">
+<button class="border border-outline-variant py-2 rounded font-body-sm hover:bg-surface-container transition-colors">Calibrate</button>
+<button class="bg-primary text-on-primary py-2 rounded font-body-sm hover:opacity-90">Telemetry</button>
+</div>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="relative h-48 bg-surface-container flex items-center justify-center p-8">
+<div class="w-full h-full border border-dashed border-outline-variant rounded flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-[64px] text-on-surface-variant/30" data-icon="engine">settings</span>
+</div>
+<div class="absolute top-3 right-3">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary/10 text-on-secondary-container text-[10px] font-bold uppercase tracking-wider border border-secondary/20">
+                Active
+              </span>
+</div>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Bay 01 Main</p>
+<h3 class="font-body-lg font-bold text-primary">Main Induction Drive</h3>
+</div>
+<span class="font-data-md text-data-md text-on-surface-variant">MOT-01-A</span>
+</div>
+<div class="grid grid-cols-2 gap-y-4 mb-6">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Voltage</p>
+<p class="font-data-md text-data-md">480.0 V AC</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Rated Torque</p>
+<p class="font-data-md text-data-md">150.2 Nm</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Max RPM</p>
+<p class="font-data-md text-data-md">1750</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">IP Rating</p>
+<p class="font-data-md text-data-md">IP67</p>
+</div>
+</div>
+<div class="mt-auto grid grid-cols-2 gap-2">
+<button class="border border-outline-variant py-2 rounded font-body-sm hover:bg-surface-container transition-colors">Calibrate</button>
+<button class="bg-primary text-on-primary py-2 rounded font-body-sm hover:opacity-90">Telemetry</button>
+</div>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col opacity-80 grayscale">
+<div class="relative h-48 bg-surface-container flex items-center justify-center p-8">
+<div class="w-full h-full border border-dashed border-outline-variant rounded flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-[64px] text-on-surface-variant/30" data-icon="mode_fan">mode_fan</span>
+</div>
+<div class="absolute top-3 right-3">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-error/10 text-error text-[10px] font-bold uppercase tracking-wider border border-error/20">
+                Maintenance Required
+              </span>
+</div>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">HVAC Zone 02</p>
+<h3 class="font-body-lg font-bold text-primary">Cooling Fan Motor</h3>
+</div>
+<span class="font-data-md text-data-md text-on-surface-variant">MOT-FAN-B</span>
+</div>
+<div class="grid grid-cols-2 gap-y-4 mb-6">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Voltage</p>
+<p class="font-data-md text-data-md">230.0 V AC</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Rated Torque</p>
+<p class="font-data-md text-data-md">12.5 Nm</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Max RPM</p>
+<p class="font-data-md text-data-md">2400</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">IP Rating</p>
+<p class="font-data-md text-data-md">IP44</p>
+</div>
+</div>
+<div class="mt-auto grid grid-cols-2 gap-2">
+<button class="border border-outline-variant py-2 rounded font-body-sm hover:bg-surface-container transition-colors">Order Parts</button>
+<button class="bg-error text-on-primary py-2 rounded font-body-sm hover:opacity-90">Diagnose</button>
+</div>
+</div>
+</article>
+<!-- Card 4 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="relative h-48 bg-surface-container flex items-center justify-center p-8">
+<div class="w-full h-full border border-dashed border-outline-variant rounded flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-[64px] text-on-surface-variant/30" data-icon="conveyor_belt">conveyor_belt</span>
+</div>
+<div class="absolute top-3 right-3">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-on-tertiary-container/10 text-on-tertiary-container text-[10px] font-bold uppercase tracking-wider border border-on-tertiary-container/20">
+                Idle
+              </span>
+</div>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Line 3 Feed</p>
+<h3 class="font-body-lg font-bold text-primary">Conveyor Drive</h3>
+</div>
+<span class="font-data-md text-data-md text-on-surface-variant">MOT-CON-03</span>
+</div>
+<div class="grid grid-cols-2 gap-y-4 mb-6">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Voltage</p>
+<p class="font-data-md text-data-md">110.0 V DC</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Rated Torque</p>
+<p class="font-data-md text-data-md">45.0 Nm</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Max RPM</p>
+<p class="font-data-md text-data-md">1200</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">IP Rating</p>
+<p class="font-data-md text-data-md">IP65</p>
+</div>
+</div>
+<div class="mt-auto grid grid-cols-2 gap-2">
+<button class="border border-outline-variant py-2 rounded font-body-sm hover:bg-surface-container transition-colors">Start Cycle</button>
+<button class="bg-primary text-on-primary py-2 rounded font-body-sm hover:opacity-90">Telemetry</button>
+</div>
+</div>
+</article>
+<!-- Card 5 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="relative h-48 bg-surface-container flex items-center justify-center p-8">
+<div class="w-full h-full border border-dashed border-outline-variant rounded flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-[64px] text-on-surface-variant/30" data-icon="robot">precision_manufacturing</span>
+</div>
+<div class="absolute top-3 right-3">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary/10 text-on-secondary-container text-[10px] font-bold uppercase tracking-wider border border-secondary/20">
+                Active
+              </span>
+</div>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Arm A-4 Axis 1</p>
+<h3 class="font-body-lg font-bold text-primary">High-Torque Servo</h3>
+</div>
+<span class="font-data-md text-data-md text-on-surface-variant">MOT-SRV-09</span>
+</div>
+<div class="grid grid-cols-2 gap-y-4 mb-6">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Voltage</p>
+<p class="font-data-md text-data-md">48.0 V DC</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Rated Torque</p>
+<p class="font-data-md text-data-md">8.2 Nm</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Max RPM</p>
+<p class="font-data-md text-data-md">6000</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">IP Rating</p>
+<p class="font-data-md text-data-md">IP68</p>
+</div>
+</div>
+<div class="mt-auto grid grid-cols-2 gap-2">
+<button class="border border-outline-variant py-2 rounded font-body-sm hover:bg-surface-container transition-colors">Calibrate</button>
+<button class="bg-primary text-on-primary py-2 rounded font-body-sm hover:opacity-90">Telemetry</button>
+</div>
+</div>
+</article>
+<!-- Card 6 -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="relative h-48 bg-surface-container flex items-center justify-center p-8">
+<div class="w-full h-full border border-dashed border-outline-variant rounded flex items-center justify-center bg-surface">
+<span class="material-symbols-outlined text-[64px] text-on-surface-variant/30" data-icon="water_drop">water_drop</span>
+</div>
+<div class="absolute top-3 right-3">
+<span class="inline-flex items-center px-2 py-1 rounded-full bg-secondary/10 text-on-secondary-container text-[10px] font-bold uppercase tracking-wider border border-secondary/20">
+                Active
+              </span>
+</div>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Coolant Pump</p>
+<h3 class="font-body-lg font-bold text-primary">Hydraulic Pump Drive</h3>
+</div>
+<span class="font-data-md text-data-md text-on-surface-variant">MOT-PMP-12</span>
+</div>
+<div class="grid grid-cols-2 gap-y-4 mb-6">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Voltage</p>
+<p class="font-data-md text-data-md">208.0 V AC</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Rated Torque</p>
+<p class="font-data-md text-data-md">22.0 Nm</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">Max RPM</p>
+<p class="font-data-md text-data-md">3500</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">IP Rating</p>
+<p class="font-data-md text-data-md">IP66</p>
+</div>
+</div>
+<div class="mt-auto grid grid-cols-2 gap-2">
+<button class="border border-outline-variant py-2 rounded font-body-sm hover:bg-surface-container transition-colors">Test Pump</button>
+<button class="bg-primary text-on-primary py-2 rounded font-body-sm hover:opacity-90">Telemetry</button>
+</div>
+</div>
+</article>
+</section>
+<!-- Advanced System Diagnostics (Bento Grid Style Extra) -->
+<section class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 bg-surface-container border border-outline-variant rounded-lg p-6 flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<h4 class="font-headline-md text-headline-md text-primary">Real-time Node Distribution</h4>
+<span class="font-data-md text-secondary">LIVE FEED</span>
+</div>
+<div class="h-48 fluid-indicator rounded-lg flex items-center justify-center">
+<div class="text-white text-center">
+<p class="font-label-caps text-label-caps opacity-70 mb-2">NETWORK THROUGHPUT</p>
+<p class="font-data-lg text-display-lg-mobile">2.4 GB/s</p>
+</div>
+</div>
+</div>
+<div class="bg-primary text-on-primary rounded-lg p-6 flex flex-col justify-between">
+<div>
+<h4 class="font-headline-md text-headline-md mb-2">System Alert</h4>
+<p class="font-body-sm opacity-80">Node MOT-FAN-B is reporting abnormal thermal oscillation. Maintenance lockout recommended.</p>
+</div>
+<div class="flex flex-col gap-3">
+<button class="w-full bg-error text-white font-bold py-3 rounded flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">warning</span>
+                EMERGENCY STOP
+             </button>
+<button class="w-full bg-white/10 hover:bg-white/20 py-3 rounded border border-white/20 font-body-sm transition-colors">
+                View System Logs
+             </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Mobile Bottom Nav (Suppressed per "Destination" rule in Desktop focus, but logic included if needed) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant flex justify-around p-2 z-50">
+<a class="flex flex-col items-center p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center p-2 text-primary font-bold" href="#">
+<span class="material-symbols-outlined">settings_input_component</span>
+<span class="text-[10px]">Nodes</span>
+</a>
+<a class="flex flex-col items-center p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="text-[10px]">Terminal</span>
+</a>
+</nav>
+</body></html>

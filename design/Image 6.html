@@ -1,0 +1,278 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Kinetic Industrial Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#c6c6c9",
+                        "primary": "#000101",
+                        "on-secondary-fixed": "#002114",
+                        "on-background": "#0b1c30",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#838486",
+                        "surface-variant": "#d3e4fe",
+                        "surface-bright": "#f8f9ff",
+                        "on-secondary-container": "#00714e",
+                        "on-tertiary-fixed": "#2f1500",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "secondary-container": "#82f5c1",
+                        "on-surface": "#0b1c30",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#c6c6c9",
+                        "surface": "#f8f9ff",
+                        "outline-variant": "#c5c6ca",
+                        "primary-fixed": "#e2e2e5",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#2f1500",
+                        "surface-tint": "#5d5e61",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#454749",
+                        "on-secondary-fixed-variant": "#005137",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary": "#006c4a",
+                        "background": "#f8f9ff",
+                        "primary-container": "#1a1c1e",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-surface-variant": "#44474a",
+                        "secondary-fixed-dim": "#68dba9",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-tertiary-container": "#c86c00",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "surface-container": "#e5eeff",
+                        "secondary-fixed": "#85f8c4",
+                        "inverse-surface": "#213145",
+                        "outline": "#75777a",
+                        "error": "#ba1a1a",
+                        "tertiary": "#010000",
+                        "tertiary-fixed": "#ffdcc3",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#1a1c1e",
+                        "surface-container-high": "#dce9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "margin-mobile": "16px",
+                        "max-width": "1440px",
+                        "unit": "4px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "data-lg": ["JetBrains Mono"],
+                        "label-caps": ["JetBrains Mono"],
+                        "display-lg-mobile": ["Inter"],
+                        "data-md": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "data-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "data-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    },
+                    "keyframes": {
+                        "fluid": {
+                            "0%, 100%": { "background-position": "0% 50%" },
+                            "50%": { "background-position": "100% 50%" }
+                        }
+                    },
+                    "animation": {
+                        "fluid": "fluid 5s ease infinite"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-lg text-body-lg min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface border-r border-outline-variant p-gutter z-50">
+<div class="mb-8 pl-4 pr-4 pt-4">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Control Panel</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Precision Motor Systems</p>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-lg transition-colors hover:bg-surface-container-high active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">home</span>
+<span class="font-data-md text-data-md">Home</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">settings_input_component</span>
+<span class="font-data-md text-data-md">Nodes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">monitor_heart</span>
+<span class="font-data-md text-data-md">Health</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-data-md text-data-md">Terminal</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">restart_alt</span>
+<span class="font-data-md text-data-md">Reboot</span>
+</a>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-data-md text-data-md">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-64 w-full">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center h-16 px-margin-desktop bg-surface border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-md text-headline-md font-bold text-primary hidden md:block">Industrial Motor Control</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-all active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all active:opacity-80">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-all active:opacity-80">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<main class="flex-1 p-margin-desktop bg-background flex flex-col gap-[24px] max-w-max-width mx-auto w-full">
+<!-- KPI Cards Row -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 flex flex-col border-b-2 border-b-primary-fixed">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Active Devices</span>
+<div class="flex items-end justify-between mt-auto">
+<span class="font-display-lg text-display-lg text-primary">42</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 flex flex-col border-b-2 border-b-primary-fixed">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Vibration</span>
+<div class="flex items-end justify-between mt-auto">
+<span class="font-display-lg text-display-lg text-primary">1.2<span class="font-data-lg text-data-lg text-on-surface-variant ml-1">mm/s</span></span>
+<span class="material-symbols-outlined text-on-surface-variant">waves</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 flex flex-col border-b-2 border-b-primary-fixed">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Ambient temperature</span>
+<div class="flex items-end justify-between mt-auto">
+<span class="font-display-lg text-display-lg text-primary">24<span class="font-data-lg text-data-lg text-on-surface-variant ml-1">°C</span></span>
+<span class="material-symbols-outlined text-on-surface-variant">thermostat</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 flex flex-col border-b-2 border-b-primary-fixed">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Avg Current</span>
+<div class="flex items-end justify-between mt-auto">
+<span class="font-display-lg text-display-lg text-primary">18.5<span class="font-data-lg text-data-lg text-on-surface-variant ml-1">A</span></span>
+<span class="material-symbols-outlined text-on-surface-variant">electric_bolt</span>
+</div>
+</div>
+</section>
+<!-- Main Layout: Status Center & Device List -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-[24px]">
+<!-- Device List -->
+<section class="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col h-full shadow-sm">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright rounded-t-xl">
+<h3 class="font-headline-md text-headline-md font-bold text-primary">Device List</h3>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-2">
+<!-- List Item 1 -->
+<div class="flex items-center justify-between p-3 mb-2 rounded-lg hover:bg-surface-container transition-colors group cursor-pointer border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-surface-variant flex items-center justify-center text-primary border border-outline-variant">
+<span class="material-symbols-outlined">autorenew</span>
+</div>
+<div>
+<p class="font-body-lg text-body-lg font-bold text-primary">Induction Motor</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">ID: MOT-01-A</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded-full bg-secondary-container/30 text-on-secondary-fixed font-label-caps text-label-caps border border-secondary-container">Active</span>
+</div>
+<!-- List Item 2 -->
+<div class="flex items-center justify-between p-3 mb-2 rounded-lg hover:bg-surface-container transition-colors group cursor-pointer border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-surface-variant flex items-center justify-center text-primary border border-outline-variant">
+<span class="material-symbols-outlined">settings_b_roll</span>
+</div>
+<div>
+<p class="font-body-lg text-body-lg font-bold text-primary">Stepper Motor (Motor Room)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">ID: STP-MR-02</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded-full bg-secondary-container/30 text-on-secondary-fixed font-label-caps text-label-caps border border-secondary-container">Active</span>
+</div>
+<!-- List Item 3 -->
+<div class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container transition-colors group cursor-pointer border border-transparent hover:border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-surface-variant flex items-center justify-center text-primary border border-outline-variant">
+<span class="material-symbols-outlined">settings_b_roll</span>
+</div>
+<div>
+<p class="font-body-lg text-body-lg font-bold text-primary">Stepper Motor (Control Panel)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">ID: STP-CP-03</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded-full bg-surface-dim text-on-surface-variant font-label-caps text-label-caps border border-outline-variant">Idle</span>
+</div>
+</div>
+<div class="p-4 border-t border-outline-variant bg-surface-bright rounded-b-xl text-center">
+<button class="font-data-md text-data-md text-primary hover:text-secondary-fixed-dim transition-colors flex items-center justify-center gap-2 w-full">
+                            View All Devices <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- Fluid Status Indicator Centerpiece -->
+<section class="lg:col-span-8 flex flex-col items-center justify-center p-[48px] min-h-[500px] relative">
+<div class="relative z-10 flex flex-col items-center">
+<div class="relative w-64 h-64 flex items-center justify-center">
+<!-- Outer blur glow -->
+<div class="absolute inset-[-12px] rounded-full bg-gradient-to-tr from-secondary-container via-secondary to-secondary-fixed bg-[length:200%_200%] animate-fluid blur-xl opacity-80"></div>
+<!-- Inner fluid rim -->
+<div class="absolute inset-[-4px] rounded-full bg-gradient-to-tr from-secondary-container via-secondary to-secondary-fixed bg-[length:200%_200%] animate-fluid"></div>
+<!-- White circle -->
+<div class="relative w-full h-full bg-surface-container-lowest rounded-full flex items-center justify-center z-10">
+<span class="font-display-lg text-display-lg text-primary tracking-tight">Good</span>
+</div>
+</div>
+<p class="font-data-md text-data-md text-on-surface-variant mt-8 uppercase tracking-widest text-center max-w-xs">System operating within optimal parameters.</p>
+</div>
+</section>
+</div>
+</main>
+</div>
+
+
+</body></html>
