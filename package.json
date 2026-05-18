@@ -11,9 +11,13 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "argon2": "^0.44.0",
     "azure-iothub": "^1.16.6",
+    "iron-session": "^8.0.4",
     "material-symbols": "^0.44.8",
     "next": "16.2.6",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1"
@@ -21,6 +25,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/passport": "^1.0.17",
+    "@types/passport-local": "^1.0.38",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",

@@ -1,49 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState, useCallback } from "react";
 import type { AuthUser } from "@/lib/types";
-import type { User } from "@supabase/supabase-js";
 
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(mapUser(session.user));
-      }
-      setLoading(false);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? mapUser(session.user) : null);
-      setLoading(false);
-    });
-
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
+    fetch("/api/auth/session")
+      .then((res) => (res.ok ? res.json() : { user: null }))
+      .then(({ user }) => setUser(user))
+      .finally(() => setLoading(false));
   }, []);
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
-  }
+  const signIn = useCallback(async (email: string, password: string) => {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-  async function signOut() {
-    await supabase.auth.signOut();
-  }
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { error: data.error ?? "Authentication failed" };
+    }
+
+    setUser(data.user);
+    return { error: null };
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+  }, []);
 
   return { user, loading, signIn, signOut };
-}
-
-function mapUser(user: User): AuthUser {
-  return {
-    id: user.id,
-    email: user.email ?? "",
-    operator_id: user.user_metadata?.operator_id,
-  };
 }
