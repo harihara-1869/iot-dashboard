@@ -12,6 +12,6 @@ CREATE TABLE IF NOT EXISTS operators (
 ALTER TABLE operators ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
-  CREATE POLICY "Allow select on operators" ON operators FOR SELECT USING (true);
+  CREATE POLICY "Allow all on operators" ON operators FOR ALL USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
