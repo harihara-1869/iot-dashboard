@@ -8,6 +8,7 @@ export interface SessionData {
     email: string;
     operator_id: string;
   };
+  lastActivity: number;
 }
 
 const SESSION_OPTIONS = {
@@ -34,7 +35,18 @@ export async function saveSession(user: Operator): Promise<void> {
     email: user.email,
     operator_id: user.operator_id,
   };
+  session.lastActivity = Date.now();
   await session.save();
+}
+
+export async function touchSession(): Promise<SessionData | null> {
+  const session = await getSession();
+
+  if (!session.user) return null;
+
+  session.lastActivity = Date.now();
+  await session.save();
+  return session;
 }
 
 export async function destroySession(): Promise<void> {
