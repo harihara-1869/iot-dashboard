@@ -1,3 +1,5 @@
+import { IMAGES } from "@/lib/images";
+
 export default function MetricsSidebar() {
   return (
     <div className="flex flex-col gap-gutter overflow-y-auto pr-1">
@@ -58,7 +60,7 @@ export default function MetricsSidebar() {
         <img
           alt="Industrial Motor Internals"
           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-          src="/images/motor-internals.png"
+          src={IMAGES.motorInternals}
         />
         <div className="absolute top-4 left-4 bg-primary text-on-primary px-3 py-1 font-mono text-[10px] font-bold uppercase">
           Node Location: Bay 04

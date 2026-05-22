@@ -1,4 +1,5 @@
 import type { MotorNode, TelemetrySnapshot } from "@/lib/types";
+import { getNodeImage } from "@/lib/images";
 
 export default function MotorVisualization({
   node,
@@ -7,6 +8,7 @@ export default function MotorVisualization({
   node: MotorNode;
   telemetry?: TelemetrySnapshot;
 }) {
+  const imageUrl = getNodeImage(node.id);
   const rpm = telemetry?.rpm?.toFixed(0) ?? "—";
   const temperature = telemetry?.temperature?.toFixed(1) ?? "—";
   const vibration = telemetry?.vibration?.toFixed(1) ?? "—";
@@ -17,8 +19,8 @@ export default function MotorVisualization({
       <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: "radial-gradient(#c5c6ca 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
 
       <div className="relative z-10 w-full max-w-lg">
-        {node.image_url ? (
-          <img alt={node.name} className="w-full h-auto object-contain" src={node.image_url} />
+        {imageUrl ? (
+          <img alt={node.name} className="w-full h-auto object-contain" src={imageUrl} />
         ) : (
           <div className="w-full h-64 border border-dashed border-outline-variant rounded flex items-center justify-center bg-surface">
             <span className="material-symbols-outlined text-[64px] text-on-surface-variant/30">settings</span>

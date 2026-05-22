@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import type { MotorNode } from "@/lib/types";
 import StatusChip from "@/components/ui/status-chip";
+import { getNodeImage } from "@/lib/images";
 
 export default function DeviceCard({ node }: { node: MotorNode }) {
   const router = useRouter();
+  const imageUrl = getNodeImage(node.id);
 
   return (
     <article
@@ -14,11 +16,11 @@ export default function DeviceCard({ node }: { node: MotorNode }) {
       }`}
     >
       <div className="relative h-48 bg-surface-container overflow-hidden">
-        {node.image_url ? (
+        {imageUrl ? (
           <img
             alt={node.name}
             className="w-full h-full object-cover"
-            src={node.image_url}
+            src={imageUrl}
           />
         ) : (
           <div className="w-full h-full border border-dashed border-outline-variant rounded flex items-center justify-center bg-surface">

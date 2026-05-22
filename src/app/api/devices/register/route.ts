@@ -77,7 +77,6 @@ export async function POST(request: Request) {
         torque: "—",
         max_rpm: 0,
         ip_rating: "—",
-        image_url: null,
         iot_device_id: iotCredentials?.deviceId ?? deviceId,
       });
 

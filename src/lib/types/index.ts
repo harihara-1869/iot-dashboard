@@ -12,7 +12,6 @@ export interface MotorNode {
   torque: string;
   max_rpm: number;
   ip_rating: string;
-  image_url: string | null;
   iot_device_id: string | null;
   created_at: string;
 }

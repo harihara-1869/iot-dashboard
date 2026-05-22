@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { IMAGES } from "@/lib/images";
 
 export default function LoginPage() {
   const [operatorId, setOperatorId] = useState("");
@@ -34,7 +35,7 @@ export default function LoginPage() {
           <img
             alt="Industrial Motor"
             className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity"
-            src="/images/hero-motor.png"
+            src={IMAGES.hero}
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/80 to-transparent" />
           <div className="relative z-10 p-12 space-y-4 max-w-xl">
