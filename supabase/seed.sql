@@ -4,13 +4,13 @@
 -- Motor Nodes
 INSERT INTO motor_nodes (id, name, type, location, status, voltage, torque, max_rpm, ip_rating, image_url)
 VALUES
-  ('MOT-17-A', 'NEMA-17-Precision', 'Stepper', 'Room 4 Stepper', 'Active', '12.0 V DC', '0.45 Nm', 3000, 'IP54', 'https://lh3.googleusercontent.com/aida/ADBb0uhxb3d990zYoyeJwV7Pl4pk9_jTypUUJMVBjFIKYjiPsAl6Rgw9u7vc8qfm6tW2h62O745WBuhmgXmwiADzrp0DV5KZ9HMjUNQGg2V8rssH8FtEB-SZfpgGwFICyG5xjneEN3jr0RQnwKUiKkDx14td4TbgD7VT_2WNWC6159l1rRdegWEHTIO2B72TcEpU7AMGMCuf8JVbOPF5m-I_vOZ4AN7Ag26XASzyCZiAHgdZ4KueDeA6hmbiNj0'),
+  ('MOT-17-A', 'NEMA-17-Precision', 'Stepper', 'Room 4 Stepper', 'Active', '12.0 V DC', '0.45 Nm', 3000, 'IP54', '/images/nema-17-motor.jpg'),
   ('MOT-01-A', 'Main Induction Drive', 'Induction', 'Bay 01 Main', 'Active', '480.0 V AC', '150.2 Nm', 1750, 'IP67', NULL),
   ('MOT-FAN-B', 'Cooling Fan Motor', 'Cooling', 'HVAC Zone 02', 'Maintenance', '230.0 V AC', '12.5 Nm', 2400, 'IP44', NULL),
   ('MOT-CON-03', 'Conveyor Drive', 'Conveyor', 'Line 3 Feed', 'Idle', '110.0 V DC', '45.0 Nm', 1200, 'IP65', NULL),
   ('MOT-SRV-09', 'High-Torque Servo', 'Servo', 'Arm A-4 Axis 1', 'Active', '48.0 V DC', '8.2 Nm', 6000, 'IP68', NULL),
   ('MOT-PMP-12', 'Hydraulic Pump Drive', 'Hydraulic', 'Coolant Pump', 'Active', '208.0 V AC', '22.0 Nm', 3500, 'IP66', NULL),
-  ('STP-MR-02', 'Stepper Motor', 'Stepper', 'Motor Room', 'Active', '12.0 V DC', '0.45 Nm', 3000, 'IP54', 'https://lh3.googleusercontent.com/aida/ADBb0uhxb3d990zYoyeJwV7Pl4pk9_jTypUUJMVBjFIKYjiPsAl6Rgw9u7vc8qfm6tW2h62O745WBuhmgXmwiADzrp0DV5KZ9HMjUNQGg2V8rssH8FtEB-SZfpgGwFICyG5xjneEN3jr0RQnwKUiKkDx14td4TbgD7VT_2WNWC6159l1rRdegWEHTIO2B72TcEpU7AMGMCuf8JVbOPF5m-I_vOZ4AN7Ag26XASzyCZiAHgdZ4KueDeA6hmbiNj0'),
+  ('STP-MR-02', 'Stepper Motor', 'Stepper', 'Motor Room', 'Active', '12.0 V DC', '0.45 Nm', 3000, 'IP54', '/images/nema-17-motor.jpg'),
   ('STP-CP-03', 'Stepper Motor', 'Stepper', 'Control Panel', 'Idle', '12.0 V DC', '0.40 Nm', 2800, 'IP52', NULL)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,

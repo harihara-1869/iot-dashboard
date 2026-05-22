@@ -34,7 +34,7 @@ export default function LoginPage() {
           <img
             alt="Industrial Motor"
             className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtGHe7qcx1rnV4uG8LoQobTKXWDPKq3KWDJwdRRKjPF4Js2f3hVj3-o_mCeVXhIVWLLPwTDAbziJxuKs7_budVOesVeJZAsQkN5QB-dKBbqzijs_v0iZB9wSuK4hI7_QcF1oQAR2qHCc8kyeW7SQzSWKkLrCQk-6XB8E4qYBAXOTRYJglzHjqqOgww2ymVSE3zCD_ThwhJc4KSnx58akY8IhQSuZAYnxWTeJuJlGKB_wVn6NXtrkq0A-xtf_1PBjeSvvUr4IuodxWy"
+            src="/images/hero-motor.png"
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/80 to-transparent" />
           <div className="relative z-10 p-12 space-y-4 max-w-xl">

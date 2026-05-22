@@ -22,13 +22,13 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const motorNodes = [
-  { id: "MOT-17-A", name: "NEMA-17-Precision", type: "Stepper", location: "Room 4 Stepper", status: "Active", voltage: "12.0 V DC", torque: "0.45 Nm", max_rpm: 3000, ip_rating: "IP54", image_url: "https://lh3.googleusercontent.com/aida/ADBb0uhxb3d990zYoyeJwV7Pl4pk9_jTypUUJMVBjFIKYjiPsAl6Rgw9u7vc8qfm6tW2h62O745WBuhmgXmwiADzrp0DV5KZ9HMjUNQGg2V8rssH8FtEB-SZfpgGwFICyG5xjneEN3jr0RQnwKUiKkDx14td4TbgD7VT_2WNWC6159l1rRdegWEHTIO2B72TcEpU7AMGMCuf8JVbOPF5m-I_vOZ4AN7Ag26XASzyCZiAHgdZ4KueDeA6hmbiNj0" },
+  { id: "MOT-17-A", name: "NEMA-17-Precision", type: "Stepper", location: "Room 4 Stepper", status: "Active", voltage: "12.0 V DC", torque: "0.45 Nm", max_rpm: 3000, ip_rating: "IP54", image_url: "/images/nema-17-motor.jpg" },
   { id: "MOT-01-A", name: "Main Induction Drive", type: "Induction", location: "Bay 01 Main", status: "Active", voltage: "480.0 V AC", torque: "150.2 Nm", max_rpm: 1750, ip_rating: "IP67", image_url: null },
   { id: "MOT-FAN-B", name: "Cooling Fan Motor", type: "Cooling", location: "HVAC Zone 02", status: "Maintenance", voltage: "230.0 V AC", torque: "12.5 Nm", max_rpm: 2400, ip_rating: "IP44", image_url: null },
   { id: "MOT-CON-03", name: "Conveyor Drive", type: "Conveyor", location: "Line 3 Feed", status: "Idle", voltage: "110.0 V DC", torque: "45.0 Nm", max_rpm: 1200, ip_rating: "IP65", image_url: null },
   { id: "MOT-SRV-09", name: "High-Torque Servo", type: "Servo", location: "Arm A-4 Axis 1", status: "Active", voltage: "48.0 V DC", torque: "8.2 Nm", max_rpm: 6000, ip_rating: "IP68", image_url: null },
   { id: "MOT-PMP-12", name: "Hydraulic Pump Drive", type: "Hydraulic", location: "Coolant Pump", status: "Active", voltage: "208.0 V AC", torque: "22.0 Nm", max_rpm: 3500, ip_rating: "IP66", image_url: null },
-  { id: "STP-MR-02", name: "Stepper Motor", type: "Stepper", location: "Motor Room", status: "Active", voltage: "12.0 V DC", torque: "0.45 Nm", max_rpm: 3000, ip_rating: "IP54", image_url: "https://lh3.googleusercontent.com/aida/ADBb0uhxb3d990zYoyeJwV7Pl4pk9_jTypUUJMVBjFIKYjiPsAl6Rgw9u7vc8qfm6tW2h62O745WBuhmgXmwiADzrp0DV5KZ9HMjUNQGg2V8rssH8FtEB-SZfpgGwFICyG5xjneEN3jr0RQnwKUiKkDx14td4TbgD7VT_2WNWC6159l1rRdegWEHTIO2B72TcEpU7AMGMCuf8JVbOPF5m-I_vOZ4AN7Ag26XASzyCZiAHgdZ4KueDeA6hmbiNj0" },
+  { id: "STP-MR-02", name: "Stepper Motor", type: "Stepper", location: "Motor Room", status: "Active", voltage: "12.0 V DC", torque: "0.45 Nm", max_rpm: 3000, ip_rating: "IP54", image_url: "/images/nema-17-motor.jpg" },
   { id: "STP-CP-03", name: "Stepper Motor", type: "Stepper", location: "Control Panel", status: "Idle", voltage: "12.0 V DC", torque: "0.40 Nm", max_rpm: 2800, ip_rating: "IP52", image_url: null },
 ];
 
