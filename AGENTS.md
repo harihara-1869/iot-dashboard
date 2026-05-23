@@ -185,3 +185,18 @@ Two fonts via `next/font/google`: Inter (UI text) and JetBrains Mono (data/metri
 - Checks for `kinetic_session` cookie on `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor/*` — redirects to `/login` if missing
 - Redirects authenticated users from `/login` → `/dashboard`
 - API routes (`/api/`) are excluded from protection
+
+## Images
+
+**All image paths live in `src/lib/images.ts` — one centralized registry.** Import `IMAGES` for static paths and `getNodeImage()` for per-node images. There is no `image_url` column in the database or `MotorNode` type.
+
+```ts
+import { IMAGES } from "@/lib/images";        // static: IMAGES.hero, IMAGES.motorInternals, IMAGES.node
+import { getNodeImage } from "@/lib/images";   // per-node: getNodeImage(nodeId) → string | null
+```
+
+To add a node image, add one line to the `NODE_IMAGE_MAP`. Do not store image paths in the database.
+
+## `argon2` Build Approval
+
+After `pnpm install`, run `pnpm approve-builds argon2` and `pnpm install` again. pnpm blocks native build scripts by default.
