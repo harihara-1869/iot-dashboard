@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function LoginFooter() {
   return (
     <footer className="fixed bottom-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop py-4 bg-surface-container-lowest border-t border-outline-variant">
@@ -10,24 +12,18 @@ export default function LoginFooter() {
         </span>
       </div>
       <nav className="flex gap-8">
-        <a
+        <Link
           className="font-sans text-[14px] leading-5 text-on-surface-variant hover:text-primary transition-colors"
-          href="#"
+          href="/privacy"
         >
-          System Status
-        </a>
-        <a
+          Privacy Policy
+        </Link>
+        <Link
           className="font-sans text-[14px] leading-5 text-on-surface-variant hover:text-primary transition-colors"
-          href="#"
+          href="/contact"
         >
-          Safety Protocols
-        </a>
-        <a
-          className="font-sans text-[14px] leading-5 text-on-surface-variant hover:text-primary transition-colors"
-          href="#"
-        >
-          Contact Admin
-        </a>
+          Contact
+        </Link>
       </nav>
     </footer>
   );

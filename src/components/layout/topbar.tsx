@@ -1,3 +1,7 @@
+"use client";
+
+import Link from "next/link";
+
 export default function Topbar() {
   return (
     <header className="sticky top-0 z-40 flex justify-between items-center h-16 px-margin-desktop bg-surface border-b border-outline-variant">
@@ -21,12 +25,18 @@ export default function Topbar() {
           <button className="text-on-surface-variant hover:text-primary transition-all active:opacity-80">
             <span className="material-symbols-outlined">notifications</span>
           </button>
-          <button className="text-on-surface-variant hover:text-primary transition-all active:opacity-80">
+          <Link
+            href="/help"
+            className="text-on-surface-variant hover:text-primary transition-all active:opacity-80"
+          >
             <span className="material-symbols-outlined">help_outline</span>
-          </button>
-          <button className="text-on-surface-variant hover:text-primary transition-all active:opacity-80">
+          </Link>
+          <Link
+            href="/preferences"
+            className="text-on-surface-variant hover:text-primary transition-all active:opacity-80"
+          >
             <span className="material-symbols-outlined">account_circle</span>
-          </button>
+          </Link>
         </div>
       </div>
     </header>
