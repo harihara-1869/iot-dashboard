@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
 const WARN_THRESHOLD_MS = 28 * 60 * 1000;
-const TOUCH_INTERVAL_MS = 30 * 1000;
 
 export default function ActivityMonitor({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -25,7 +25,8 @@ export default function ActivityMonitor({ children }: { children: React.ReactNod
   const doLogout = useCallback(async () => {
     clearTimers();
     setShowWarning(false);
-    await fetch("/api/auth/logout", { method: "POST" });
+    const supabase = createClient();
+    await supabase.auth.signOut();
     router.push("/login");
   }, [clearTimers, router]);
 
@@ -53,18 +54,6 @@ export default function ActivityMonitor({ children }: { children: React.ReactNod
     }, INACTIVITY_LIMIT_MS);
   }, [clearTimers, doLogout]);
 
-  const touch = useCallback(async () => {
-    try {
-      const res = await fetch("/api/auth/touch", { method: "POST" });
-      if (!res.ok) {
-        doLogout();
-        return;
-      }
-    } catch {
-      // network error — ignore, client-side timer handles logout
-    }
-  }, [doLogout]);
-
   useEffect(() => {
     resetTimers();
 
@@ -75,10 +64,6 @@ export default function ActivityMonitor({ children }: { children: React.ReactNod
     const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
     events.forEach((e) => window.addEventListener(e, handleActivity, { passive: true }));
 
-    const touchInterval = setInterval(() => {
-      touch();
-    }, TOUCH_INTERVAL_MS);
-
     const resetInterval = setInterval(() => {
       const elapsed = Date.now() - lastTouchRef.current;
       if (elapsed < WARN_THRESHOLD_MS / 2) {
@@ -88,15 +73,13 @@ export default function ActivityMonitor({ children }: { children: React.ReactNod
 
     return () => {
       events.forEach((e) => window.removeEventListener(e, handleActivity));
-      clearInterval(touchInterval);
       clearInterval(resetInterval);
       clearTimers();
     };
-  }, [resetTimers, touch, clearTimers]);
+  }, [resetTimers, clearTimers]);
 
   const handleStayLoggedIn = () => {
     resetTimers();
-    touch();
   };
 
   const handleLogoutNow = () => {

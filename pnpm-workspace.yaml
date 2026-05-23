@@ -1,5 +1,5 @@
 allowBuilds:
-  argon2: true
+  argon2: set this to true or false
   esbuild: true
   sharp: true
   unrs-resolver: true

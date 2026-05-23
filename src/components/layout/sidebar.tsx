@@ -21,6 +21,7 @@ export default function Sidebar() {
     router.push("/login");
   }
 
+
   return (
     <aside className="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant bg-surface flex flex-col p-gutter z-50">
       <div className="mb-8 px-4">
@@ -72,7 +73,7 @@ export default function Sidebar() {
               {user?.email ?? "Operator"}
             </p>
             <p className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold text-on-surface-variant">
-              {user?.operator_id ?? "LEVEL 1 ACCESS"}
+              {user?.operator_id ?? "LEVEL 1"}
             </p>
           </div>
         </div>

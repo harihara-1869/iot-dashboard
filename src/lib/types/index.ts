@@ -68,6 +68,6 @@ export interface EdgeNodePing {
 
 export interface AuthUser {
   id: string;
-  email: string;
+  email?: string;
   operator_id?: string;
 }

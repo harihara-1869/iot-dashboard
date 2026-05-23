@@ -52,19 +52,52 @@ CREATE TABLE IF NOT EXISTS terminal_logs (
   operator_id TEXT NOT NULL
 );
 
--- RLS Policies (allow all authenticated users)
+-- Profiles — extended user data linked to Supabase Auth users
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  operator_id TEXT UNIQUE NOT NULL,
+  email TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- RLS Policies (allow all for development)
 ALTER TABLE motor_nodes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE telemetry_live ENABLE ROW LEVEL SECURITY;
 ALTER TABLE diagnostics_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE terminal_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
   CREATE POLICY "Allow all on motor_nodes" ON motor_nodes FOR ALL USING (true) WITH CHECK (true);
   CREATE POLICY "Allow all on telemetry_live" ON telemetry_live FOR ALL USING (true) WITH CHECK (true);
   CREATE POLICY "Allow all on diagnostics_logs" ON diagnostics_logs FOR ALL USING (true) WITH CHECK (true);
   CREATE POLICY "Allow all on terminal_logs" ON terminal_logs FOR ALL USING (true) WITH CHECK (true);
+  CREATE POLICY "Allow all on profiles" ON profiles FOR ALL USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Profiles trigger — auto-create profile on new auth.users signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, operator_id, email)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data ->> 'operator_id', 'KNS-' || substring(NEW.id::text, 1, 6)),
+    NEW.email
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Enable Realtime for telemetry_live (skip if already added)
 DO $$ BEGIN

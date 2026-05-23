@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { AuthUser } from "@/lib/types";
 
 export function useAuth() {
@@ -8,31 +9,44 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/session")
-      .then((res) => (res.ok ? res.json() : { user: null }))
-      .then(({ user }) => setUser(user))
-      .finally(() => setLoading(false));
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const { id, email, user_metadata } = session.user;
+        setUser({ id, email, operator_id: user_metadata?.operator_id as string | undefined });
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const { id, email, user_metadata } = session.user;
+        setUser({ id, email, operator_id: user_metadata?.operator_id as string | undefined });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { error: data.error ?? "Authentication failed" };
+    if (error) {
+      return { error: error.message };
     }
 
-    setUser(data.user);
+    const { id, email: userEmail, user_metadata } = data.user;
+    setUser({ id, email: userEmail, operator_id: user_metadata?.operator_id as string | undefined });
     return { error: null };
   }, []);
 
   const signOut = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    const supabase = createClient();
+    await supabase.auth.signOut();
     setUser(null);
   }, []);
 

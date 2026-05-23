@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { IMAGES } from "@/lib/images";
 
 export default function LoginPage() {
-  const [operatorId, setOperatorId] = useState("");
-  const [accessKey, setAccessKey] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const { error: signInError } = await signIn(operatorId, accessKey);
+    const { error: signInError } = await signIn(email, password);
 
     if (signInError) {
       setError("Authentication failed. Check your credentials.");
@@ -71,19 +72,19 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <label
                   className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold text-on-surface uppercase"
-                  htmlFor="operator-id"
+                  htmlFor="email"
                 >
-                  Operator ID
+                  Email
                 </label>
                 <div className="relative">
                   <input
                     className="w-full h-12 bg-surface border border-outline px-4 font-mono text-[14px] leading-5 font-medium focus:border-primary focus:ring-0 rounded-none transition-all"
-                    id="operator-id"
-                    name="operator-id"
-                    placeholder="KNS-000000"
-                    type="text"
-                    value={operatorId}
-                    onChange={(e) => setOperatorId(e.target.value)}
+                    id="email"
+                    name="email"
+                    placeholder="operator@kinetic.local"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -92,19 +93,19 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <label
                   className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold text-on-surface uppercase"
-                  htmlFor="access-key"
+                  htmlFor="password"
                 >
-                  Access Key
+                  Password
                 </label>
                 <div className="relative">
                   <input
                     className="w-full h-12 bg-surface border border-outline px-4 font-mono text-[14px] leading-5 font-medium focus:border-primary focus:ring-0 rounded-none transition-all"
-                    id="access-key"
-                    name="access-key"
+                    id="password"
+                    name="password"
                     placeholder="••••••••"
                     type="password"
-                    value={accessKey}
-                    onChange={(e) => setAccessKey(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                 </div>
@@ -136,13 +137,13 @@ export default function LoginPage() {
                 <span className="material-symbols-outlined text-[18px]">lock_reset</span>
                 Forgot Password
               </a>
-              <a
+              <Link
+                href="/signup"
                 className="font-sans text-[14px] leading-5 text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2"
-                href="#"
               >
                 <span className="material-symbols-outlined text-[18px]">person_add</span>
                 Request Access
-              </a>
+              </Link>
             </div>
           </div>
         </div>
