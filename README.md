@@ -32,23 +32,24 @@ src/
 │   │   ├── layout.tsx                     # Sidebar + Topbar + ActivityMonitor shell
 │   │   ├── dashboard/page.tsx             # KPI cards + Device List + Fluid Status
 │   │   ├── nodes/page.tsx                 # Filter bar + Device cards + System Alert
-│   │   ├── health/page.tsx                # Glass status bar + Diagnostics + History table
+│   │   ├── health/page.tsx                # Status bar + Diagnostics Grid + History table
 │   │   ├── terminal/page.tsx              # Terminal + Metrics sidebar + Status bar
-│   │   ├── help/page.tsx                  # Project overview + research background
 │   │   └── preferences/page.tsx           # Account profile + display settings
 │   ├── motor/
-│   │   └── [id]/page.tsx                  # Motor viz + Floating tiles + Recharts graphs
+│   │   └── [id]/page.tsx                  # Motor viz + Telemetry charts (Recharts)
+│   ├── help/page.tsx                      # Project overview + research background (public)
 │   ├── contact/page.tsx                   # RVCE contact info (public)
 │   ├── privacy/page.tsx                   # Privacy policy (public)
 │   └── api/
 │       ├── auth/
 │       │   └── signup/route.ts            # POST — create user via Supabase Auth
-│       └── devices/register/route.ts      # POST — authenticated device registration
+│       ├── devices/register/route.ts      # POST — authenticated device registration
+│       └── diagnostics/run/route.ts       # POST — system-wide health check (Azure + DB)
 ├── components/
 │   ├── layout/       # Sidebar, Topbar, StatusBar, LoginHeader, LoginFooter
 │   ├── ui/           # StatusChip, KpiCard, DataField, Button, GlassPanel, FluidStatus
 │   ├── nodes/        # DeviceCard, FilterBar, RegisterDeviceDialog
-│   ├── health/       # DiagnosticsGrid, HealthHistoryTable
+│   ├── health/       # DiagnosticsGrid, HistoryTable
 │   ├── terminal/     # TerminalWindow, MetricsSidebar
 │   ├── telemetry/    # MotorVisualization, TelemetryCharts (Recharts)
 │   └── auth/         # ActivityMonitor (client-only inactivity auto-logout)
@@ -68,17 +69,18 @@ src/
 |---|---|---|
 | `/login` | Email + Password login | No |
 | `/signup` | New operator registration | No |
-| `/dashboard` | Dynamic Status (Home) | Yes |
-| `/nodes` | Nodes Inventory | Yes |
-| `/health` | System Health Diagnostics | Yes |
+| `/dashboard` | KPI Overview (Home) | Yes |
+| `/nodes` | Nodes Inventory + Fleet Status | Yes |
+| `/health` | System Health Diagnostics + History | Yes |
 | `/terminal` | System Terminal | Yes |
 | `/preferences` | Account Preferences | Yes |
-| `/motor/[id]` | Motor Detail — Floating Telemetry | Yes |
+| `/motor/[id]` | Motor Detail — Telemetry + Charts | Yes |
 | `/help` | Project help + architecture overview | No |
 | `/contact` | RVCE contact information | No |
 | `/privacy` | Privacy policy | No |
 | `POST /api/auth/signup` | Create user via Supabase Auth | No |
 | `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes |
+| `POST /api/diagnostics/run` | Run system diagnostics (Azure + DB + server) | Yes |
 
 ## Quick Start
 
@@ -187,7 +189,12 @@ pnpm dev                           # Start development server (Turbopack)
 pnpm build                         # Production build
 pnpm start                         # Start production server
 pnpm lint                          # Run ESLint
-npx tsx supabase/seed.ts           # Seed motor nodes + telemetry
+```
+
+## Seeding
+
+```bash
+npx tsx supabase/seed.ts           # Seed motor nodes + telemetry (8 nodes, 24h data)
 ```
 
 ## Database Schema

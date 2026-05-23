@@ -38,6 +38,7 @@ export default function ActivityMonitor({ children }: { children: React.ReactNod
 
     warnTimerRef.current = setTimeout(() => {
       setShowWarning(true);
+      window.dispatchEvent(new CustomEvent("inactivity-warning"));
 
       let remaining = 120;
       countdownRef.current = setInterval(() => {

@@ -40,7 +40,7 @@ Auth uses Supabase Auth (email/password), not the custom Passport.js stack that 
 ### Inactivity Auto-Logout (30 min)
 
 `src/components/auth/activity-monitor.tsx` watches `mousemove`, `keydown`, `click`, `scroll`, `touchstart`:
-- At 28 min: shows modal with live 2-min countdown and "Stay logged in" / "Logout now" buttons
+- At 28 min: shows modal with live 2-min countdown and "Stay logged in" / "Logout now" buttons. Also dispatches `CustomEvent("inactivity-warning")` that the topbar notification bell picks up.
 - At 30 min: calls `supabase.auth.signOut()`, redirects to `/login`
 - Mounted in `(dashboard)/layout.tsx` wrapping all protected routes
 
@@ -107,13 +107,36 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 ## Azure IoT Hub
 
 - `azure-iothub` SDK is server-only. Do not import in client components.
-- Library: `src/lib/iot-hub/index.ts`
+- Library: `src/lib/iot-hub/index.ts` — `registerDeviceInIotHub()`, `getDeviceStatus()`, `listDevices()`, `deleteDeviceFromIotHub()`
 - API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Inserts into Supabase + optional Azure IoT Hub identity
+- API route: `POST /api/diagnostics/run` — requires auth. Pings Azure IoT Hub per-node, checks Supabase DB, measures latencies, inserts results into `diagnostics_logs`
 - Without `AZURE_IOT_HUB_CONNECTION_STRING`, devices are registered in Supabase only (graceful fallback)
+
+### Device Registration Flow
+
+1. User clicks "Register New Node" on `/nodes` → opens `RegisterDeviceDialog`
+2. Dialog POSTs to `/api/devices/register` with `device_name`, `location`, optional `custom_device_id`
+3. Server generates a slug-based device ID, checks for duplicates in Supabase
+4. If `AZURE_IOT_HUB_CONNECTION_STRING` is set: creates symmetric-key identity in Azure IoT Hub, returns `primaryKey` + `iotHubHost`
+5. Inserts row into `motor_nodes` with `iot_device_id` linking to the Azure identity
+6. Credentials displayed once — user copies them to flash onto the ESP32/MCU
+
+### Diagnostics Run
+
+1. User clicks "Run System Diagnostics" on `/health` → POSTs to `/api/diagnostics/run`
+2. Server iterates all `motor_nodes` with `iot_device_id`, calls Azure `Registry.get()` per device
+3. Each device check measures round-trip latency, records `connectionState` (connected/disconnected)
+4. Server runs a lightweight Supabase query to confirm DB is reachable, measures query latency
+5. All checks inserted into `diagnostics_logs` with `check_type`, `result`, `performance` (latency in ms), `operator`, `node_id`
+6. `DiagnosticsGrid` on `/health` reads latest logs and displays 3 cards: Server (hardcoded), Database (latency from log), Edge Pings (average latency + slow nodes >500ms)
 
 ## Charts
 
 Recharts `ResponsiveContainer` needs a parent with explicit height. If charts render blank, check that the parent has `h-64` or similar. `min-h-0` on a flex child collapses the container to zero.
+
+## Hydration Mismatches
+
+Async Supabase data in client components causes server/client renders to differ on initial load. When rendering tables with conditional `disabled` props from async state, use `suppressHydrationWarning` on the root element to suppress the warning. See `src/components/health/history-table.tsx` for the pattern.
 
 ## Icons
 
@@ -152,5 +175,5 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | 1 | Password reset | Supabase `resetPasswordForEmail` flow — needs reset page + email template |
 | 2 | Security audit | Enforce email confirmation, audit Realtime channel access, rate-limit API routes, reduce session cookie TTL (~1h default) |
 | 3 | Terminal / Remote command | Expand `/terminal` with command history, per-node targeting, response streaming |
-| 4 | Analytics / Health page | Add historical comparison, anomaly detection, export on `/health` |
+| 4 | Analytics / Health page | Add historical comparison, anomaly detection on `/health` (export + diagnostics run already done) |
 | 5 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |

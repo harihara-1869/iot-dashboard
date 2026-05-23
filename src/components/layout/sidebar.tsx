@@ -62,7 +62,11 @@ export default function Sidebar() {
       </nav>
 
       <div className="pt-4 border-t border-outline-variant">
-        <div className="flex items-center gap-3 mb-4 px-4">
+        <Link
+          href="/preferences"
+          replace
+          className="flex items-center gap-3 mb-4 px-4 py-2 rounded-lg hover:bg-surface-container-high transition-colors active:scale-95 duration-200"
+        >
           <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center border border-outline-variant">
             <span className="material-symbols-outlined text-primary">
               account_circle
@@ -76,7 +80,7 @@ export default function Sidebar() {
               {user?.operator_id ?? "LEVEL 1"}
             </p>
           </div>
-        </div>
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 text-error hover:bg-error-container/20 transition-colors rounded-lg active:scale-95 duration-200"
