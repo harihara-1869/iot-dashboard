@@ -14,14 +14,12 @@ export default function LoginHeader() {
             ONLINE
           </span>
         </div>
-        <div className="flex gap-4">
-          <span className="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded cursor-pointer">
-            help
-          </span>
-          <span className="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded cursor-pointer">
-            settings
-          </span>
-        </div>
+        <a
+          href="/help"
+          className="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded cursor-pointer"
+        >
+          help
+        </a>
       </div>
     </header>
   );

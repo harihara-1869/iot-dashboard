@@ -10,7 +10,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="flex justify-between items-center h-16 px-margin-desktop bg-surface border-b border-outline-variant">
         <Link href="/" className="font-sans text-[24px] leading-8 font-semibold font-bold text-primary">
-          Control Panel
+          Kinetic Motor Systems
         </Link>
         {!loading && (
           <Link
@@ -41,7 +41,7 @@ export default function ContactPage() {
               Department of Electronics &amp; Instrumentation Engineering<br />
               R.V. College of Engineering<br />
               Mysuru Road, R.V. Vidyaniketan Post<br />
-              Bengaluru &mdash; 560 059, Karnataka
+              Bengaluru — 560 059, Karnataka
             </p>
 
             <div className="space-y-2 pt-2">

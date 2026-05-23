@@ -49,7 +49,7 @@ Auth uses Supabase Auth (email/password), not the custom Passport.js stack that 
 The file is `src/proxy.ts` (Next.js 16 convention, was `middleware.ts`). Uses Supabase SSR pattern:
 - Creates `createServerClient` with cookie `getAll`/`setAll` from the request
 - Calls `supabase.auth.getUser()` immediately — **do not add code between client creation and `getUser()`**
-- Protects `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor/*` — redirects to `/login` if no user
+- Protects `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor`, `/preferences` — redirects to `/login` if no user
 - Redirects authenticated users from `/login` → `/dashboard`
 - Redirects `/` → `/dashboard`
 - Must return the `supabaseResponse` object with synced cookies — never return a fresh `NextResponse.next()` without copying cookies
@@ -68,14 +68,14 @@ All RLS policies use `USING (true) WITH CHECK (true)`. Tighten before production
 
 ## Seed & Schema
 
-- **Schema**: `supabase/schema.sql` — Creates `motor_nodes`, `telemetry_live`, `diagnostics_logs`, `terminal_logs`, `profiles` + `system_settings` + RLS + Realtime publication + `handle_new_user()` trigger
+- **Schema**: `supabase/schema.sql` — Creates `motor_nodes`, `telemetry_live`, `diagnostics_logs`, `terminal_logs`, `profiles` + RLS + Realtime publication + `handle_new_user()` trigger
 - **RPC**: `supabase/rpc.sql` — Creates `latest_telemetry_averages()` function for dashboard KPI cards
 - **Seed**: `supabase/seed.sql` (SQL) or `npx tsx supabase/seed.ts` (TypeScript) — 8 nodes + 8 diagnostics logs + 24h telemetry
 - **Schema order**: `schema.sql` → `rpc.sql` → `seed.sql`
 - `supabase/` is excluded from TypeScript compilation (`tsconfig.json`)
 - `ALTER PUBLICATION supabase_realtime ADD TABLE telemetry_live` is wrapped in `DO $$ ... EXCEPTION WHEN duplicate_object` — running schema.sql twice is safe
 
-## Design System — Material Design 3 Dark Theme
+## Design System — Material Design 3 Light Theme
 
 All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or arbitrary sizes.
 
@@ -100,7 +100,7 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 
 | Token | Value | Usage |
 |---|---|---|
-| `p-margin-desktop` | `24px` | Main content padding |
+| `p-margin-desktop` | `32px` (2rem) | Main content padding |
 | `p-margin-mobile` | `16px` | Mobile content padding |
 | `p-gutter` | `16px` | Sidebar internal padding |
 
@@ -125,7 +125,18 @@ Inter (sans) and JetBrains Mono (mono) via `next/font/google`. CSS variables `--
 
 ## Images
 
-Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeImage(nodeId)` for per-node images. No `image_url` column in the database. Add node images via `NODE_IMAGE_MAP` — never store paths in the DB.
+Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeImage(nodeId)` for per-node images. Add node images via `NODE_IMAGE_MAP` — never store paths in the DB.
+
+## Route Structure
+
+| Route | Layout | Auth |
+|---|------|-------|
+| `/login`, `/signup` | `(auth)` — LoginHeader + LoginFooter | No |
+| `/dashboard`, `/nodes`, `/health`, `/terminal`, `/preferences` | `(dashboard)` — Sidebar + Topbar + ActivityMonitor | Yes |
+| `/motor/[id]` | Standalone (not in any group) — own header with back button | Yes |
+| `/help`, `/contact`, `/privacy` | Standalone — minimal header with Dashboard/Login button | No |
+
+`/motor/[id]` is deliberately outside `(dashboard)` — it does not render the sidebar or topbar. Standalone public pages (`/help`, `/contact`, `/privacy`) use `useAuth()` to conditionally link to `/dashboard` or `/login`.
 
 ## Navigation Conventions
 
@@ -133,3 +144,13 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 - Motor detail back button uses `router.back()`
 - Login → dashboard uses `router.push()`
 - Logout calls `supabase.auth.signOut()` and pushes to `/login`
+
+## Future TODOs
+
+| # | Task | Notes |
+|---|------|-------|
+| 1 | Password reset | Supabase `resetPasswordForEmail` flow — needs reset page + email template |
+| 2 | Security audit | RLS policies currently `USING (true)` — tighten per-role. Enforce email confirmation. |
+| 3 | Terminal / Remote command | Expand `/terminal` with command history, per-node targeting, response streaming |
+| 4 | Analytics / Health page | Add historical comparison, anomaly detection, export on `/health` |
+| 5 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |
