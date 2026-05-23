@@ -150,7 +150,7 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | # | Task | Notes |
 |---|------|-------|
 | 1 | Password reset | Supabase `resetPasswordForEmail` flow — needs reset page + email template |
-| 2 | Security audit | Enforce email confirmation, audit Realtime channel access, rate-limit API routes |
+| 2 | Security audit | Enforce email confirmation, audit Realtime channel access, rate-limit API routes, reduce session cookie TTL (~1h default) |
 | 3 | Terminal / Remote command | Expand `/terminal` with command history, per-node targeting, response streaming |
 | 4 | Analytics / Health page | Add historical comparison, anomaly detection, export on `/health` |
 | 5 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |

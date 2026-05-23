@@ -13,7 +13,7 @@ A precision industrial motor monitoring and control dashboard for IoT-enabled mo
 | Charts | [Recharts](https://recharts.org) |
 | Icons | [Material Symbols](https://fonts.google.com/icons) |
 | Database | [Supabase](https://supabase.com) (PostgreSQL + Realtime) |
-| Auth | Passport.js + Argon2id + iron-session |
+| Auth | Supabase Auth + @supabase/ssr |
 | IoT | [Azure IoT Hub](https://azure.microsoft.com/products/iot-hub) (Device Identity Registry + MQTT) |
 | Package Manager | pnpm |
 
@@ -26,22 +26,24 @@ src/
 │   ├── page.tsx                           # Redirect / → /dashboard
 │   ├── (auth)/
 │   │   ├── layout.tsx                     # Login shell (header + footer)
-│   │   └── login/page.tsx                 # Operator ID + Access Key form
+│   │   ├── login/page.tsx                 # Email + Password login form
+│   │   └── signup/page.tsx                # New operator registration
 │   ├── (dashboard)/
 │   │   ├── layout.tsx                     # Sidebar + Topbar + ActivityMonitor shell
 │   │   ├── dashboard/page.tsx             # KPI cards + Device List + Fluid Status
 │   │   ├── nodes/page.tsx                 # Filter bar + Device cards + System Alert
 │   │   ├── health/page.tsx                # Glass status bar + Diagnostics + History table
-│   │   └── terminal/page.tsx              # SSH terminal + Metrics sidebar + Status bar
+│   │   ├── terminal/page.tsx              # Terminal + Metrics sidebar + Status bar
+│   │   ├── help/page.tsx                  # Project overview + research background
+│   │   └── preferences/page.tsx           # Account profile + display settings
 │   ├── motor/
 │   │   └── [id]/page.tsx                  # Motor viz + Floating tiles + Recharts graphs
+│   ├── contact/page.tsx                   # RVCE contact info (public)
+│   ├── privacy/page.tsx                   # Privacy policy (public)
 │   └── api/
 │       ├── auth/
-│       │   ├── login/route.ts             # POST — Passport authenticate + iron-session
-│       │   ├── logout/route.ts            # POST — destroy session
-│       │   ├── session/route.ts           # GET — current user
-│       │   └── touch/route.ts             # POST — refresh inactivity timestamp
-│       └── devices/register/route.ts      # POST device registration endpoint
+│       │   └── signup/route.ts            # POST — create user via Supabase Auth
+│       └── devices/register/route.ts      # POST — authenticated device registration
 ├── components/
 │   ├── layout/       # Sidebar, Topbar, StatusBar, LoginHeader, LoginFooter
 │   ├── ui/           # StatusChip, KpiCard, DataField, Button, GlassPanel, FluidStatus
@@ -49,33 +51,34 @@ src/
 │   ├── health/       # DiagnosticsGrid, HealthHistoryTable
 │   ├── terminal/     # TerminalWindow, MetricsSidebar
 │   ├── telemetry/    # MotorVisualization, TelemetryCharts (Recharts)
-│   └── auth/         # ActivityMonitor (inactivity auto-logout)
+│   └── auth/         # ActivityMonitor (client-only inactivity auto-logout)
 ├── lib/
-│   ├── supabase/     # Browser + Server clients
-│   ├── auth/         # password.ts (Argon2), passport.ts (strategy), session.ts (iron-session)
+│   ├── supabase/     # Browser client (createBrowserClient) + Server client (createServerClient)
 │   ├── iot-hub/      # Azure IoT Hub device identity registry
 │   ├── hooks/        # useAuth, useSupabase (motor nodes, telemetry, diagnostics)
 │   └── types/        # MotorNode, TelemetryPoint, DiagnosticsLog, etc.
-├── middleware.ts      # Route protection (session cookie check)
+├── proxy.ts           # Route protection (Supabase SSR, was middleware.ts)
 ├── instrumentation.ts # DB table verification at startup
 └── app/globals.css    # Design tokens (exact Figma colors, animations, utilities)
 ```
 
 ## Routes
 
-| Route | Screen |
-|---|---|
-| `/login` | Enhanced Login |
-| `/dashboard` | Dynamic Status (Home) |
-| `/nodes` | Nodes Inventory |
-| `/health` | System Health Diagnostics |
-| `/terminal` | System Terminal |
-| `/motor/[id]` | Motor Detail — Floating Telemetry |
-| `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) |
-| `POST /api/auth/login` | Authenticate operator (Passport.js + Argon2id) |
-| `POST /api/auth/logout` | Destroy session |
-| `GET /api/auth/session` | Current user session |
-| `POST /api/auth/touch` | Inactivity heartbeat |
+| Route | Screen | Auth |
+|---|---|---|
+| `/login` | Email + Password login | No |
+| `/signup` | New operator registration | No |
+| `/dashboard` | Dynamic Status (Home) | Yes |
+| `/nodes` | Nodes Inventory | Yes |
+| `/health` | System Health Diagnostics | Yes |
+| `/terminal` | System Terminal | Yes |
+| `/preferences` | Account Preferences | Yes |
+| `/motor/[id]` | Motor Detail — Floating Telemetry | Yes |
+| `/help` | Project help + architecture overview | No |
+| `/contact` | RVCE contact information | No |
+| `/privacy` | Privacy policy | No |
+| `POST /api/auth/signup` | Create user via Supabase Auth | No |
+| `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes |
 
 ## Quick Start
 
@@ -91,7 +94,6 @@ src/
 git clone <repo-url> dashboard
 cd dashboard
 pnpm install
-pnpm approve-builds argon2
 ```
 
 ### 3. Supabase Setup (Free Tier)
@@ -109,9 +111,12 @@ pnpm approve-builds argon2
    ```
 8. Go to **SQL Editor** in the Supabase dashboard
 9. Run scripts in order:
-   - `supabase/schema.sql` — creates tables, RLS, enables Realtime
+   - `supabase/schema.sql` — creates tables, RLS, profiles, `handle_new_user()` trigger, enables Realtime
    - `supabase/rpc.sql` — creates `latest_telemetry_averages()` KPI function
-   - `supabase/operators.sql` — creates `operators` table for Argon2-hashed passwords
+10. Go to **Authentication → Settings**:
+    - Toggle **"Allow new users to sign up"** ON (for initial onboarding, toggle OFF after team is registered)
+    - Optionally disable **"Confirm email"** for development
+11. Add `http://localhost:3000/auth/confirm` to **Redirect URLs**
 
 ### 4. Azure IoT Hub Setup (Free Tier)
 
@@ -131,22 +136,13 @@ pnpm approve-builds argon2
     AZURE_IOT_HUB_CONNECTION_STRING=HostName=motor-predictor-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=...
     ```
 
-### 5. Configure Session Secret
-
-Generate a random 32+ character secret and add to `.env.local`:
-
-```
-SESSION_SECRET=your-random-secret-at-least-32-chars
-```
-
-### 6. Seed the Database
+### 5. Seed the Database
 
 ```bash
 npx tsx supabase/seed.ts              # 8 motor nodes + 24h telemetry
-npx tsx supabase/seed-operator.ts     # Test operators (operator@kinetic.local / access-key-123)
 ```
 
-### 7. Start the Dev Server
+### 6. Start the Dev Server
 
 ```bash
 pnpm dev
@@ -154,9 +150,14 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000). The instrumentation hook verifies database connectivity at startup and logs the status.
 
-Log in with:
-- **Operator ID**: `operator@kinetic.local`
-- **Access Key**: `access-key-123`
+### 7. Create Your Account
+
+Navigate to `/signup` and register with:
+- **Email**: your email
+- **Operator ID**: e.g. `KNS-000001`
+- **Password**: min 8 characters
+
+If email confirmation is enabled, check your inbox. Otherwise log in directly at `/login`.
 
 ### 8. Register an IoT Device
 
@@ -176,7 +177,6 @@ Log in with:
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key |
 | `AZURE_IOT_HUB_HOST` | Azure IoT Hub hostname |
 | `AZURE_IOT_HUB_CONNECTION_STRING` | IoT Hub owner connection string |
-| `SESSION_SECRET` | 32+ char secret for iron-session cookie encryption |
 
 See `.env.local.example` for the template.
 
@@ -188,7 +188,6 @@ pnpm build                         # Production build
 pnpm start                         # Start production server
 pnpm lint                          # Run ESLint
 npx tsx supabase/seed.ts           # Seed motor nodes + telemetry
-npx tsx supabase/seed-operator.ts  # Seed test operators
 ```
 
 ## Database Schema
@@ -199,43 +198,36 @@ npx tsx supabase/seed-operator.ts  # Seed test operators
 | `telemetry_live` | Real-time sensor data (Realtime-enabled) — RPM, temp, vibration, current |
 | `diagnostics_logs` | System health check history |
 | `terminal_logs` | Command history per device |
-| `operators` | Operator accounts — email, operator_id, Argon2id password hash |
+| `profiles` | Extended user data — operator_id, email, linked to `auth.users` via FK |
 
 ## Authentication
 
-### Password Hashing — Argon2id
+Authentication uses **Supabase Auth** (email + password) with `@supabase/ssr` for route protection and cookie management.
 
-Passwords are hashed with **Argon2id** (10 iterations, 64 MB memory, 32-byte output) with a random salt auto-generated per hash. Implemented in `src/lib/auth/password.ts`.
+### Key Details
 
-### Timing Attack Defense
+- **Login**: `supabase.auth.signInWithPassword({ email, password })` in the `useAuth` hook
+- **Logout**: `supabase.auth.signOut()` — clears Supabase session cookies
+- **Session cookie**: `sb-{project-ref}-auth-token` managed by `@supabase/ssr`
+- **User data**: `operator_id` stored in `user_metadata.operator_id` during signup; auto-populated to `public.profiles` via `handle_new_user()` trigger
+- **Signup gate**: Controlled by Supabase dashboard → Authentication → Settings → "Allow new users to sign up" toggle
+- **Email confirmation**: Configurable in Supabase dashboard; `/auth/confirm` route handles OTP redirects
 
-- `argon2.verify()` uses internal constant-time comparison — never early-exits on mismatch.
-- When login receives an email that doesn't exist in `operators`, a dummy hash is verified with identical Argon2 parameters — matching CPU cost. This prevents user enumeration via timing.
-- `constantTimeEqual()` via `crypto.timingSafeEqual` is exported for external use.
+### Route Protection
 
-### Session Management
+`src/proxy.ts` (Next.js 16 convention) protects `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor`, `/preferences` — redirects to `/login` if unauthenticated. Authenticated users on `/login` are redirected to `/dashboard`.
 
-- **Passport.js** with `passport-local` strategy handles credential verification.
-- **iron-session** encrypts the session into a `kinetic_session` httpOnly cookie (8-hour max age, `lax` same-site).
-- `POST /api/auth/login` — authenticates, creates session.
-- `POST /api/auth/logout` — destroys session cookie.
-- `GET /api/auth/session` — returns current user or `{ user: null }`.
+### RLS (Row Level Security)
+
+All tables require `auth.role() = 'authenticated'`. The anon/publishable key alone cannot read or write data — a valid user session JWT must be present. The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
 
 ### Inactivity Auto-Logout (30 min)
 
-`src/components/auth/activity-monitor.tsx` watches user activity across all protected pages:
+`src/components/auth/activity-monitor.tsx` watches `mousemove`, `keydown`, `click`, `scroll`, `touchstart` across all protected pages:
 
-- Sends a heartbeat `POST /api/auth/touch` every 30 seconds to refresh server-side `lastActivity`.
 - After **28 minutes** of inactivity: displays a modal with a live 2-minute countdown and "Stay logged in" / "Logout now" buttons.
-- After **30 minutes** total: auto-destroys session, clears cookie, and redirects to `/login`.
-- "Stay logged in" resets the inactivity timer immediately.
-
-### Test Operators
-
-| Email | Password | Operator ID |
-|---|---|---|
-| `operator@kinetic.local` | `access-key-123` | `KNS-000001` |
-| `admin@kinetic.local` | `admin-key-456` | `KNS-ADMIN` |
+- After **30 minutes** total: calls `supabase.auth.signOut()` and redirects to `/login`.
+- Purely client-side — no server heartbeat. The Supabase session cookie TTL (~1h by default) determines how long the session remains valid if the browser tab is closed without logging out.
 
 ## Firmware Design (ESP32 / MCU)
 
