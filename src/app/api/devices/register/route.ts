@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabase } from "@/lib/supabase/server";
 import {
   registerDeviceInIotHub,
   generateDeviceId,
   type RegisterDeviceResult,
 } from "@/lib/iot-hub/index";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
-);
-
 export async function POST(request: Request) {
   try {
+    const supabase = await createServerSupabase();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required." } satisfies RegisterDeviceResult,
+        { status: 401 },
+      );
+    }
+
     const body = await request.json();
     const { device_name, location, custom_device_id } = body;
 

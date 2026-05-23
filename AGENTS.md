@@ -62,9 +62,9 @@ The anon key is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, **not** `NEXT_PUBLIC_SUP
 
 Most pages are `"use client"` because they use React hooks. Dashboard and auth layout files have `export const dynamic = "force-dynamic"` — prevents static prerendering of pages that import `@supabase/ssr`.
 
-## Supabase RLS — Permissive for Dev
+## Supabase RLS — Authenticated Only
 
-All RLS policies use `USING (true) WITH CHECK (true)`. Tighten before production.
+All RLS policies require `auth.role() = 'authenticated'`. The publishable key alone cannot read or write data — a valid user session JWT must be present. The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
 
 ## Seed & Schema
 
@@ -108,7 +108,7 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 
 - `azure-iothub` SDK is server-only. Do not import in client components.
 - Library: `src/lib/iot-hub/index.ts`
-- API route: `POST /api/devices/register` — Supabase insert + optional Azure IoT Hub identity
+- API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Inserts into Supabase + optional Azure IoT Hub identity
 - Without `AZURE_IOT_HUB_CONNECTION_STRING`, devices are registered in Supabase only (graceful fallback)
 
 ## Charts
@@ -150,7 +150,7 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | # | Task | Notes |
 |---|------|-------|
 | 1 | Password reset | Supabase `resetPasswordForEmail` flow — needs reset page + email template |
-| 2 | Security audit | RLS policies currently `USING (true)` — tighten per-role. Enforce email confirmation. |
+| 2 | Security audit | Enforce email confirmation, audit Realtime channel access, rate-limit API routes |
 | 3 | Terminal / Remote command | Expand `/terminal` with command history, per-node targeting, response streaming |
 | 4 | Analytics / Health page | Add historical comparison, anomaly detection, export on `/health` |
 | 5 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |

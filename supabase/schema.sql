@@ -60,21 +60,26 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- RLS Policies (allow all for development)
+-- RLS Policies — require authentication for all access
 ALTER TABLE motor_nodes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE telemetry_live ENABLE ROW LEVEL SECURITY;
 ALTER TABLE diagnostics_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE terminal_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
-DO $$ BEGIN
-  CREATE POLICY "Allow all on motor_nodes" ON motor_nodes FOR ALL USING (true) WITH CHECK (true);
-  CREATE POLICY "Allow all on telemetry_live" ON telemetry_live FOR ALL USING (true) WITH CHECK (true);
-  CREATE POLICY "Allow all on diagnostics_logs" ON diagnostics_logs FOR ALL USING (true) WITH CHECK (true);
-  CREATE POLICY "Allow all on terminal_logs" ON terminal_logs FOR ALL USING (true) WITH CHECK (true);
-  CREATE POLICY "Allow all on profiles" ON profiles FOR ALL USING (true) WITH CHECK (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+-- Drop old permissive policies
+DROP POLICY IF EXISTS "Allow all on motor_nodes" ON motor_nodes;
+DROP POLICY IF EXISTS "Allow all on telemetry_live" ON telemetry_live;
+DROP POLICY IF EXISTS "Allow all on diagnostics_logs" ON diagnostics_logs;
+DROP POLICY IF EXISTS "Allow all on terminal_logs" ON terminal_logs;
+DROP POLICY IF EXISTS "Allow all on profiles" ON profiles;
+
+-- Create authenticated-only policies
+CREATE POLICY "Authenticated access on motor_nodes" ON motor_nodes FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated access on telemetry_live" ON telemetry_live FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated access on diagnostics_logs" ON diagnostics_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated access on terminal_logs" ON terminal_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated access on profiles" ON profiles FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- Profiles trigger — auto-create profile on new auth.users signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
