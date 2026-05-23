@@ -53,21 +53,24 @@ export interface TerminalLog {
   operator_id: string;
 }
 
-export interface SystemHealthService {
-  name: string;
-  service_id: string;
-  status: "Online" | "Active" | "Warning" | "Offline";
-  metric: string;
-}
-
-export interface EdgeNodePing {
-  node_id: string;
-  latency_ms: number;
-  status: "good" | "warning" | "critical";
-}
-
 export interface AuthUser {
   id: string;
   email?: string;
   operator_id?: string;
+}
+
+export interface DiagnosticsCheckResult {
+  check_type: string;
+  result: "SUCCESS" | "WARNING" | "ERROR";
+  performance: string;
+  latency_ms?: number;
+  node_id?: string;
+  node_name?: string;
+}
+
+export interface DiagnosticsRunResult {
+  success: boolean;
+  checks: DiagnosticsCheckResult[];
+  summary: string;
+  error?: string;
 }

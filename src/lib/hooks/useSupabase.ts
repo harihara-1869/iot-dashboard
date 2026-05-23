@@ -91,23 +91,35 @@ export function useDashboardKpis() {
   return { kpis, loading };
 }
 
-export function useDiagnosticsLogs() {
+export function useDiagnosticsLogs(page = 1, pageSize = 10) {
   const [logs, setLogs] = useState<DiagnosticsLog[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase
-      .from("diagnostics_logs")
-      .select("*")
-      .order("timestamp", { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        if (data) setLogs(data as DiagnosticsLog[]);
-        setLoading(false);
-      });
-  }, []);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  return { logs, loading };
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, count, error } = await supabase
+      .from("diagnostics_logs")
+      .select("*", { count: "exact" })
+      .order("timestamp", { ascending: false })
+      .range(from, to);
+    if (error) {
+      console.error("Diagnostics fetch error:", error.message);
+    }
+    if (data) setLogs(data as DiagnosticsLog[]);
+    if (count !== null) setTotalCount(count);
+    setLoading(false);
+  }, [page, pageSize]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  return { logs, totalCount, totalPages, loading, refetch: fetchLogs };
 }
 
 export function useLatestTelemetry(nodeId?: string) {

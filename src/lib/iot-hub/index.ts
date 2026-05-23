@@ -119,3 +119,45 @@ export async function deleteDeviceFromIotHub(deviceId: string): Promise<void> {
     });
   });
 }
+
+export interface DeviceStatus {
+  deviceId: string;
+  connected: boolean;
+  lastActivityTime: string | null;
+  status: "enabled" | "disabled";
+}
+
+export async function getDeviceStatus(deviceId: string): Promise<DeviceStatus | null> {
+  const registry = getRegistry();
+  if (!registry) return null;
+
+  try {
+    const result = await registry.get(deviceId);
+    const device = result.responseBody;
+    return {
+      deviceId: device.deviceId,
+      connected: device.connectionState === "connected",
+      lastActivityTime: device.lastActivityTime ?? null,
+      status: device.status === "disabled" ? "disabled" : "enabled",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function listDevices(): Promise<DeviceStatus[]> {
+  const registry = getRegistry();
+  if (!registry) return [];
+
+  try {
+    const result = await registry.list();
+    return result.responseBody.map((device) => ({
+      deviceId: device.deviceId,
+      connected: device.connectionState === "connected",
+      lastActivityTime: device.lastActivityTime ?? null,
+      status: device.status === "disabled" ? "disabled" : "enabled",
+    }));
+  } catch {
+    return [];
+  }
+}

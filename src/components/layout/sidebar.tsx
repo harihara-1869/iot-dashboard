@@ -29,7 +29,7 @@ export default function Sidebar() {
           Control Panel
         </h1>
         <p className="font-sans text-[14px] leading-5 text-on-surface-variant">
-          Precision Motor Systems
+          Kinetic Motor Systems
         </p>
       </div>
 
