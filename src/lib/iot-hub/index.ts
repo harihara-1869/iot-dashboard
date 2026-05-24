@@ -63,7 +63,7 @@ export async function registerDeviceInIotHub(
 
   if (!registry || !cs) {
     throw new Error(
-      "AZURE_IOT_HUB_CONNECTION_STRING is not configured. Device registered in Supabase only.",
+      "AZURE_IOT_HUB_CONNECTION_STRING is not configured.",
     );
   }
 

@@ -108,9 +108,8 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 
 - `azure-iothub` SDK is server-only. Do not import in client components.
 - Library: `src/lib/iot-hub/index.ts` — `registerDeviceInIotHub()`, `getDeviceStatus()`, `listDevices()`, `deleteDeviceFromIotHub()`
-- API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Inserts into Supabase + optional Azure IoT Hub identity
+- API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Inserts into Supabase + Azure IoT Hub identity. Azure IoT Hub failures fail the entire request.
 - API route: `POST /api/diagnostics/run` — requires auth. Pings Azure IoT Hub per-node, checks Supabase DB, measures latencies, inserts results into `diagnostics_logs`
-- Without `AZURE_IOT_HUB_CONNECTION_STRING`, devices are registered in Supabase only (graceful fallback)
 
 ### Device Registration Flow
 

@@ -108,54 +108,44 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
                 </div>
               </div>
 
-              {result.device ? (
-                <>
-                  <div className="bg-error/5 border border-error/20 rounded-lg p-4">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="material-symbols-outlined text-error text-[20px]">warning</span>
-                      <p className="font-sans text-[13px] leading-5 font-bold text-error">
-                        Save these credentials now. The primary key will NOT be shown again.
-                      </p>
-                    </div>
-                    <p className="font-sans text-[13px] leading-5 text-on-surface-variant">
-                      Store the primary key securely on your ESP32 device. Never commit it to source control.
-                    </p>
-                  </div>
-
-                  <CredentialsDisplay
-                    label="Device ID"
-                    value={result.device.deviceId}
-                    mono
-                  />
-                  <CredentialsDisplay
-                    label="IoT Hub Host"
-                    value={result.device.iotHubHost}
-                    mono
-                  />
-                  <CredentialsDisplay
-                    label="Primary Key"
-                    value={result.device.primaryKey}
-                    mono
-                    secret
-                    copied={copied}
-                  />
-
-                  <Button
-                    variant="primary"
-                    onClick={() => copyCredentials(result.device!)}
-                    icon={<span className="material-symbols-outlined text-[18px]">content_copy</span>}
-                    className="w-full"
-                  >
-                    {copied ? "Copied!" : "Copy All Credentials"}
-                  </Button>
-                </>
-              ) : (
-                <div className="bg-surface-container border border-outline-variant rounded-lg p-4">
-                  <p className="font-mono text-[13px] text-on-surface-variant">
-                    Device registered in database only. Azure IoT Hub credentials were not generated — configure AZURE_IOT_HUB_CONNECTION_STRING for full IoT provisioning.
+              <div className="bg-error/5 border border-error/20 rounded-lg p-4">
+                <div className="flex items-start gap-2 mb-2">
+                  <span className="material-symbols-outlined text-error text-[20px]">warning</span>
+                  <p className="font-sans text-[13px] leading-5 font-bold text-error">
+                    Save these credentials now. The primary key will NOT be shown again.
                   </p>
                 </div>
-              )}
+                <p className="font-sans text-[13px] leading-5 text-on-surface-variant">
+                  Store the primary key securely on your ESP32 device. Never commit it to source control.
+                </p>
+              </div>
+
+              <CredentialsDisplay
+                label="Device ID"
+                value={result.device!.deviceId}
+                mono
+              />
+              <CredentialsDisplay
+                label="IoT Hub Host"
+                value={result.device!.iotHubHost}
+                mono
+              />
+              <CredentialsDisplay
+                label="Primary Key"
+                value={result.device!.primaryKey}
+                mono
+                secret
+                copied={copied}
+              />
+
+              <Button
+                variant="primary"
+                onClick={() => copyCredentials(result.device!)}
+                icon={<span className="material-symbols-outlined text-[18px]">content_copy</span>}
+                className="w-full"
+              >
+                {copied ? "Copied!" : "Copy All Credentials"}
+              </Button>
 
               <Button variant="secondary" onClick={handleClose} className="w-full">
                 Done

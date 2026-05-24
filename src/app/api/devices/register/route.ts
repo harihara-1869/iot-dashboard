@@ -60,13 +60,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let iotCredentials;
-    try {
-      iotCredentials = await registerDeviceInIotHub(deviceId);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.warn("Azure IoT Hub registration skipped:", message);
-    }
+    const iotCredentials = await registerDeviceInIotHub(deviceId);
 
     const supabaseId = `MOT-${deviceId.toUpperCase().slice(0, 8)}`;
 
@@ -82,7 +76,7 @@ export async function POST(request: Request) {
         torque: "—",
         max_rpm: 0,
         ip_rating: "—",
-        iot_device_id: iotCredentials?.deviceId ?? deviceId,
+        iot_device_id: iotCredentials.deviceId,
       });
 
     if (insertError) {
@@ -99,13 +93,11 @@ export async function POST(request: Request) {
       success: true,
       deviceId: supabaseId,
       supabaseId,
-      device: iotCredentials
-        ? {
-            deviceId: iotCredentials.deviceId,
-            iotHubHost: iotCredentials.iotHubHost,
-            primaryKey: iotCredentials.primaryKey,
-          }
-        : undefined,
+      device: {
+        deviceId: iotCredentials.deviceId,
+        iotHubHost: iotCredentials.iotHubHost,
+        primaryKey: iotCredentials.primaryKey,
+      },
     } satisfies RegisterDeviceResult);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
