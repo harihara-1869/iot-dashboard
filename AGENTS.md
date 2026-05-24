@@ -22,7 +22,7 @@ Auth uses Supabase Auth (email/password), not the custom Passport.js stack that 
 |---|---|
 | Login | `supabase.auth.signInWithPassword({ email, password })` in `useAuth` hook |
 | Logout | `supabase.auth.signOut()` — clears Supabase cookies |
-| Session | `sb-{ref}-auth-token` cookie managed by `@supabase/ssr` via middleware |
+| Session | `__Host-sb-auth-token` cookie managed by `@supabase/ssr` via middleware — uses `__Host-` prefix scoped to origin with `Secure`, `SameSite=Lax`, `Path=/` |
 | User data | `operator_id` stored in `user_metadata.operator_id` during signup |
 | Profiles | `public.profiles` table auto-created via `handle_new_user()` trigger on `auth.users` INSERT |
 | Signup gate | Controlled by Supabase dashboard → Authentication → Settings → "Allow new users to sign up" toggle. Email confirmation enforced in proxy (check `email_confirmed_at`), `emailRedirectTo` set in signup route, and `handle_new_user()` gated on `NEW.email_confirmed_at IS NOT NULL`. |
@@ -165,7 +165,8 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | # | Task | Notes |
 |---|------|-------|
 | 1 | Password reset | Supabase `resetPasswordForEmail` flow — needs reset page + email template |
-| 2 | Security audit | Audit Realtime channel access, rate-limit API routes, reduce session cookie TTL (~1h default) |
-| 3 | Terminal / Remote command | Expand `/terminal` with command history, per-node targeting, response streaming |
-| 4 | Analytics / Health page | Add historical comparison, anomaly detection on `/health` (export + diagnostics run already done) |
-| 5 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |
+| 2 | Terminal / Remote command | Currently fully fake/hardcoded. Replace with real command history, per-node targeting, response streaming |
+| 3 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |
+| 4 | Reduce session TTL | Supabase dashboard → Authentication → Settings → access token to 15 min, refresh token to 7 days |
+| 5 | Password change endpoint | Invalidate all existing refresh tokens on password change. API route + preferences UI |
+| 6 | Re-auth gating | Require password re-entry before device registration and diagnostics runs |

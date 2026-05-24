@@ -45,6 +45,12 @@ export async function POST(request: Request) {
           }
         },
       },
+      cookieOptions: {
+        name: "__Host-sb-auth-token",
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+      },
     }
   );
 

@@ -24,6 +24,12 @@ export async function GET(request: NextRequest) {
           );
         },
       },
+      cookieOptions: {
+        name: "__Host-sb-auth-token",
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+      },
     }
   );
 

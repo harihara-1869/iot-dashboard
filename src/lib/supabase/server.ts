@@ -18,5 +18,11 @@ export async function createServerSupabase() {
         }
       },
     },
+    cookieOptions: {
+      name: "__Host-sb-auth-token",
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    },
   });
 }

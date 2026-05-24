@@ -35,6 +35,12 @@ export async function proxy(request: NextRequest) {
           );
         },
       },
+      cookieOptions: {
+        name: "__Host-sb-auth-token",
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+      },
     }
   );
 
