@@ -52,7 +52,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (pathname === "/login" && user) {
+  if (isProtected && user && !user.email_confirmed_at) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("error", "email_unconfirmed");
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/login" && user && user.email_confirmed_at) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

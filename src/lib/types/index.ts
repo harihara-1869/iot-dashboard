@@ -57,6 +57,8 @@ export interface AuthUser {
   id: string;
   email?: string;
   operator_id?: string;
+  email_confirmed_at?: string;
+  isVerified: boolean;
 }
 
 export interface DiagnosticsCheckResult {

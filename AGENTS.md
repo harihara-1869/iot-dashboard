@@ -25,7 +25,7 @@ Auth uses Supabase Auth (email/password), not the custom Passport.js stack that 
 | Session | `sb-{ref}-auth-token` cookie managed by `@supabase/ssr` via middleware |
 | User data | `operator_id` stored in `user_metadata.operator_id` during signup |
 | Profiles | `public.profiles` table auto-created via `handle_new_user()` trigger on `auth.users` INSERT |
-| Signup gate | Controlled by Supabase dashboard → Authentication → Settings → "Allow new users to sign up" toggle |
+| Signup gate | Controlled by Supabase dashboard → Authentication → Settings → "Allow new users to sign up" toggle. Email confirmation enforced in proxy (check `email_confirmed_at`), `emailRedirectTo` set in signup route, and `handle_new_user()` gated on `NEW.email_confirmed_at IS NOT NULL`. |
 
 ### Key auth files
 
@@ -70,7 +70,7 @@ All RLS policies require `auth.role() = 'authenticated'`. The publishable key al
 
 - **Schema**: `supabase/schema.sql` — Creates `motor_nodes`, `telemetry_live`, `diagnostics_logs`, `terminal_logs`, `profiles` + RLS + Realtime publication + `handle_new_user()` trigger
 - **RPC**: `supabase/rpc.sql` — Creates `latest_telemetry_averages()` function for dashboard KPI cards
-- **Seed**: `supabase/seed.sql` (SQL) or `npx tsx supabase/seed.ts` (TypeScript) — 8 nodes + 8 diagnostics logs + 24h telemetry
+- **Seed**: `supabase/seed.sql` (SQL) or `npx tsx supabase/seed.ts` (TypeScript) — 8 nodes + 8 diagnostics logs + 24h telemetry. Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (bypasses RLS via service role key).
 - **Schema order**: `schema.sql` → `rpc.sql` → `seed.sql`
 - `supabase/` is excluded from TypeScript compilation (`tsconfig.json`)
 - `ALTER PUBLICATION supabase_realtime ADD TABLE telemetry_live` is wrapped in `DO $$ ... EXCEPTION WHEN duplicate_object` — running schema.sql twice is safe
@@ -173,7 +173,7 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | # | Task | Notes |
 |---|------|-------|
 | 1 | Password reset | Supabase `resetPasswordForEmail` flow — needs reset page + email template |
-| 2 | Security audit | Enforce email confirmation, audit Realtime channel access, rate-limit API routes, reduce session cookie TTL (~1h default) |
+| 2 | Security audit | Audit Realtime channel access, rate-limit API routes, reduce session cookie TTL (~1h default) |
 | 3 | Terminal / Remote command | Expand `/terminal` with command history, per-node targeting, response streaming |
 | 4 | Analytics / Health page | Add historical comparison, anomaly detection on `/health` (export + diagnostics run already done) |
 | 5 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |

@@ -4,6 +4,21 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AuthUser } from "@/lib/types";
 
+function userToAuthUser(user: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+  email_confirmed_at?: string;
+}): AuthUser {
+  return {
+    id: user.id,
+    email: user.email,
+    operator_id: user.user_metadata?.operator_id as string | undefined,
+    email_confirmed_at: user.email_confirmed_at,
+    isVerified: !!user.email_confirmed_at,
+  };
+}
+
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -13,16 +28,14 @@ export function useAuth() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        const { id, email, user_metadata } = session.user;
-        setUser({ id, email, operator_id: user_metadata?.operator_id as string | undefined });
+        setUser(userToAuthUser(session.user));
       }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        const { id, email, user_metadata } = session.user;
-        setUser({ id, email, operator_id: user_metadata?.operator_id as string | undefined });
+        setUser(userToAuthUser(session.user));
       } else {
         setUser(null);
       }
@@ -39,8 +52,7 @@ export function useAuth() {
       return { error: error.message };
     }
 
-    const { id, email: userEmail, user_metadata } = data.user;
-    setUser({ id, email: userEmail, operator_id: user_metadata?.operator_id as string | undefined });
+    setUser(userToAuthUser(data.user));
     return { error: null };
   }, []);
 

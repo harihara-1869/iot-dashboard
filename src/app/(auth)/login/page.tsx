@@ -2,14 +2,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { IMAGES } from "@/lib/images";
+
+export const dynamic = "force-dynamic";
+
+function initialError(params: URLSearchParams): string {
+  const e = params.get("error");
+  if (e === "email_unconfirmed") return "Please confirm your email before logging in. Check your inbox.";
+  if (e === "confirmation_failed") return "Email confirmation failed. Please try signing up again.";
+  return "";
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const searchParams = useSearchParams();
+  const [error, setError] = useState(() => initialError(searchParams));
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();

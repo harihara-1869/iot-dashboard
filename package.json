@@ -19,16 +19,16 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^20.19.41",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
     "dotenv": "^17.4.2",
-    "eslint": "^9",
+    "eslint": "^9.39.4",
     "eslint-config-next": "16.2.6",
-    "tailwindcss": "^4",
+    "tailwindcss": "^4.3.0",
     "tsx": "^4.22.0",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

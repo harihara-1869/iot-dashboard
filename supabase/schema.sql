@@ -74,27 +74,35 @@ DROP POLICY IF EXISTS "Allow all on diagnostics_logs" ON diagnostics_logs;
 DROP POLICY IF EXISTS "Allow all on terminal_logs" ON terminal_logs;
 DROP POLICY IF EXISTS "Allow all on profiles" ON profiles;
 
--- Create authenticated-only policies
+-- Recreate authenticated-only policies (idempotent)
+DROP POLICY IF EXISTS "Authenticated access on motor_nodes" ON motor_nodes;
+DROP POLICY IF EXISTS "Authenticated access on telemetry_live" ON telemetry_live;
+DROP POLICY IF EXISTS "Authenticated access on diagnostics_logs" ON diagnostics_logs;
+DROP POLICY IF EXISTS "Authenticated access on terminal_logs" ON terminal_logs;
+DROP POLICY IF EXISTS "Authenticated access on profiles" ON profiles;
+
 CREATE POLICY "Authenticated access on motor_nodes" ON motor_nodes FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on telemetry_live" ON telemetry_live FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on diagnostics_logs" ON diagnostics_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on terminal_logs" ON terminal_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on profiles" ON profiles FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- Profiles trigger — auto-create profile on new auth.users signup
+-- Profiles trigger — auto-create profile on email-confirmed signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, operator_id, email)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data ->> 'operator_id', 'KNS-' || substring(NEW.id::text, 1, 6)),
-    NEW.email
-  )
-  ON CONFLICT (id) DO NOTHING;
+  IF NEW.email_confirmed_at IS NOT NULL THEN
+    INSERT INTO public.profiles (id, operator_id, email)
+    VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data ->> 'operator_id', 'KNS-' || substring(NEW.id::text, 1, 6)),
+      NEW.email
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
   RETURN NEW;
 END;
 $$;
@@ -103,6 +111,14 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Profiles trigger — create profile when email is confirmed post-signup
+DROP TRIGGER IF EXISTS on_auth_user_email_confirmed ON auth.users;
+CREATE TRIGGER on_auth_user_email_confirmed
+  AFTER UPDATE OF email_confirmed_at ON auth.users
+  FOR EACH ROW
+  WHEN (NEW.email_confirmed_at IS NOT NULL AND OLD.email_confirmed_at IS NULL)
+  EXECUTE FUNCTION public.handle_new_user();
 
 -- Enable Realtime for telemetry_live (skip if already added)
 DO $$ BEGIN

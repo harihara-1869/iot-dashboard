@@ -48,10 +48,13 @@ export async function POST(request: Request) {
     }
   );
 
+  const origin = new URL(request.url).origin;
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: `${origin}/auth/confirm`,
       data: { operator_id: operatorId },
     },
   });
