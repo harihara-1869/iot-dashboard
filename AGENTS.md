@@ -35,14 +35,7 @@ Auth uses Supabase Auth (email/password), not the custom Passport.js stack that 
 | `src/lib/hooks/useAuth.ts` | Client hook — `signIn()`, `signOut()`, `user`, `loading` via Supabase browser client |
 | `src/app/api/auth/signup/route.ts` | `POST` — calls `signUp()` with email, password, `user_metadata.operator_id` |
 | `src/app/auth/confirm/route.ts` | `GET` — handles email confirmation redirects (`verifyOtp`) |
-| `src/components/auth/activity-monitor.tsx` | 30-min inactivity auto-logout (client-side only, no server heartbeat) |
 
-### Inactivity Auto-Logout (30 min)
-
-`src/components/auth/activity-monitor.tsx` watches `mousemove`, `keydown`, `click`, `scroll`, `touchstart`:
-- At 28 min: shows modal with live 2-min countdown and "Stay logged in" / "Logout now" buttons. Also dispatches `CustomEvent("inactivity-warning")` that the topbar notification bell picks up.
-- At 30 min: calls `supabase.auth.signOut()`, redirects to `/login`
-- Mounted in `(dashboard)/layout.tsx` wrapping all protected routes
 
 ## Proxy (Route Protection) — Next.js 16
 
@@ -154,7 +147,7 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | Route | Layout | Auth |
 |---|------|-------|
 | `/login`, `/signup` | `(auth)` — LoginHeader + LoginFooter | No |
-| `/dashboard`, `/nodes`, `/health`, `/terminal`, `/preferences` | `(dashboard)` — Sidebar + Topbar + ActivityMonitor | Yes |
+| `/dashboard`, `/nodes`, `/health`, `/terminal`, `/preferences` | `(dashboard)` — Sidebar + Topbar | Yes |
 | `/motor/[id]` | Standalone (not in any group) — own header with back button | Yes |
 | `/help`, `/contact`, `/privacy` | Standalone — minimal header with Dashboard/Login button | No |
 

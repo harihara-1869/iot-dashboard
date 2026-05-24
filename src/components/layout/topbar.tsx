@@ -16,27 +16,6 @@ export default function Topbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleInactivityWarning() {
-      const now = new Date();
-      setNotifications((prev) => {
-        if (prev.some((n) => n.id === "inactivity-warning")) return prev;
-        return [
-          {
-            id: "inactivity-warning",
-            icon: "timer_off",
-            message: "You will be logged out soon due to inactivity",
-            time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-          ...prev,
-        ];
-      });
-    }
-
-    window.addEventListener("inactivity-warning", handleInactivityWarning);
-    return () => window.removeEventListener("inactivity-warning", handleInactivityWarning);
-  }, []);
-
-  useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
