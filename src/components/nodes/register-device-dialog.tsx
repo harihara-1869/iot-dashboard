@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RegisterDeviceResult, DeviceCredentials } from "@/lib/iot-hub/index";
+import DeviceDetailsForm, { type DeviceDetailsValues } from "@/components/nodes/device-details-form";
 import Button from "@/components/ui/button";
 
 interface Props {
@@ -11,17 +12,15 @@ interface Props {
 }
 
 export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Props) {
-  const [step, setStep] = useState<"form" | "loading" | "result" | "error">("form");
+  const [step, setStep] = useState<"register" | "loading" | "details" | "saving" | "result" | "error">("register");
   const [deviceName, setDeviceName] = useState("");
   const [location, setLocation] = useState("");
-  const [customDeviceId, setCustomDeviceId] = useState("");
-  const [result, setResult] = useState<RegisterDeviceResult | null>(null);
+  const [registerResult, setRegisterResult] = useState<RegisterDeviceResult | null>(null);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
 
   if (!open) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setStep("loading");
     setError("");
@@ -30,19 +29,14 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
       const res = await fetch("/api/devices/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          device_name: deviceName,
-          location,
-          custom_device_id: customDeviceId || undefined,
-        }),
+        body: JSON.stringify({ device_name: deviceName, location }),
       });
 
       const data: RegisterDeviceResult = await res.json();
 
       if (data.success) {
-        setResult(data);
-        setStep("result");
-        onRegistered();
+        setRegisterResult(data);
+        setStep("details");
       } else {
         setError(data.error ?? "Registration failed.");
         setStep("error");
@@ -53,24 +47,67 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
     }
   }
 
+  async function handleDetailsSubmit(values: DeviceDetailsValues) {
+    if (!registerResult?.supabaseId) return;
+
+    setStep("saving");
+    setError("");
+
+    try {
+      const res = await fetch(`/api/devices/${registerResult.supabaseId}/details`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStep("result");
+        onRegistered();
+      } else {
+        setError(data.error ?? "Failed to save details.");
+        setStep("error");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+      setStep("error");
+    }
+  }
+
+  function handleSkipDetails() {
+    setStep("result");
+    onRegistered();
+  }
+
   function handleClose() {
-    setStep("form");
+    setStep("register");
     setDeviceName("");
     setLocation("");
-    setCustomDeviceId("");
-    setResult(null);
+    setRegisterResult(null);
     setError("");
-    setCopied(false);
     onClose();
   }
 
-  function copyCredentials(creds: DeviceCredentials) {
-    const text = [
-      `Device ID: ${creds.deviceId}`,
-      `IoT Hub Host: ${creds.iotHubHost}`,
-      `Primary Key: ${creds.primaryKey}`,
-    ].join("\n");
-    navigator.clipboard.writeText(text).then(() => setCopied(true));
+  function downloadCredentials(creds: DeviceCredentials) {
+    const json = JSON.stringify(
+      {
+        deviceId: creds.deviceId,
+        iotHubHost: creds.iotHubHost,
+        primaryKey: creds.primaryKey,
+      },
+      null,
+      2,
+    );
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "credentials.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -79,9 +116,9 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
       <div className="relative bg-surface-container-lowest border border-outline-variant rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-outline-variant bg-surface-bright">
           <h2 className="font-sans text-[20px] leading-7 font-semibold text-primary">
-            Register New Device
+            {step === "details" || step === "saving" ? "Device Details" : "Register New Device"}
           </h2>
-          <button onClick={handleClose} className="text-on-surface-variant hover:text-primary transition-colors">
+          <button onClick={handleClose} className="text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -96,14 +133,32 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
             </div>
           )}
 
-          {step === "result" && result && (
+          {step === "saving" && (
+            <div className="flex flex-col items-center gap-4 py-12">
+              <div className="w-8 h-8 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
+              <p className="font-mono text-[14px] text-on-surface-variant">
+                Saving device details...
+              </p>
+            </div>
+          )}
+
+          {step === "details" && (
+            <DeviceDetailsForm
+              submitting={false}
+              submitLabel="Save Details"
+              onSubmit={handleDetailsSubmit}
+              onSkip={handleSkipDetails}
+            />
+          )}
+
+          {step === "result" && registerResult && (
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-secondary text-[28px]">check_circle</span>
                 <div>
                   <p className="font-sans text-[18px] font-semibold text-primary">Device Registered</p>
                   <p className="font-mono text-[14px] text-on-surface-variant">
-                    ID: {result.deviceId}
+                    ID: {registerResult.deviceId}
                   </p>
                 </div>
               </div>
@@ -122,29 +177,28 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
 
               <CredentialsDisplay
                 label="Device ID"
-                value={result.device!.deviceId}
+                value={registerResult.device!.deviceId}
                 mono
               />
               <CredentialsDisplay
                 label="IoT Hub Host"
-                value={result.device!.iotHubHost}
+                value={registerResult.device!.iotHubHost}
                 mono
               />
               <CredentialsDisplay
                 label="Primary Key"
-                value={result.device!.primaryKey}
+                value={registerResult.device!.primaryKey}
                 mono
                 secret
-                copied={copied}
               />
 
               <Button
                 variant="primary"
-                onClick={() => copyCredentials(result.device!)}
-                icon={<span className="material-symbols-outlined text-[18px]">content_copy</span>}
+                onClick={() => downloadCredentials(registerResult.device!)}
+                icon={<span className="material-symbols-outlined text-[18px]">download</span>}
                 className="w-full"
               >
-                {copied ? "Copied!" : "Copy All Credentials"}
+                Download credentials.json
               </Button>
 
               <Button variant="secondary" onClick={handleClose} className="w-full">
@@ -153,8 +207,8 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
             </div>
           )}
 
-          {(step === "form" || step === "error") && (
-            <form onSubmit={handleSubmit} className="space-y-5">
+          {(step === "register" || step === "error") && (
+            <form onSubmit={handleRegister} className="space-y-5">
               {error && (
                 <div className="bg-error/5 border border-error/20 rounded-lg p-3 flex items-start gap-2">
                   <span className="material-symbols-outlined text-error text-[18px]">error</span>
@@ -190,22 +244,6 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold text-on-surface uppercase" htmlFor="custom-id">
-                  Custom Device ID
-                </label>
-                <input
-                  id="custom-id"
-                  className="w-full h-12 bg-surface border border-outline px-4 font-mono text-[14px] leading-5 font-medium focus:border-primary focus:ring-0 rounded outline-none transition-all"
-                  placeholder="Optional — auto-generated if empty"
-                  value={customDeviceId}
-                  onChange={(e) => setCustomDeviceId(e.target.value)}
-                />
-                <p className="font-sans text-[12px] text-on-surface-variant">
-                  Leave blank to auto-generate a unique device ID from the device name.
-                </p>
-              </div>
-
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="secondary" onClick={handleClose} className="flex-1">
                   Cancel
@@ -227,14 +265,21 @@ function CredentialsDisplay({
   value,
   mono = false,
   secret = false,
-  copied = false,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   secret?: boolean;
-  copied?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="space-y-1">
       <p className="font-mono text-[11px] leading-4 tracking-[0.05em] font-bold text-on-surface-variant uppercase">
@@ -250,8 +295,8 @@ function CredentialsDisplay({
         </code>
         <button
           type="button"
-          className="p-2 text-on-surface-variant hover:text-primary transition-colors"
-          onClick={() => navigator.clipboard.writeText(value)}
+          className="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+          onClick={handleCopy}
           title="Copy"
         >
           <span className="material-symbols-outlined text-[18px]">

@@ -101,17 +101,23 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 
 - `azure-iothub` SDK is server-only. Do not import in client components.
 - Library: `src/lib/iot-hub/index.ts` — `registerDeviceInIotHub()`, `getDeviceStatus()`, `listDevices()`, `deleteDeviceFromIotHub()`
-- API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Inserts into Supabase + Azure IoT Hub identity. Azure IoT Hub failures fail the entire request.
+- API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Creates device in Azure IoT Hub + inserts into Supabase with defaults. Azure IoT Hub failures fail the entire request.
+- API route: `PATCH /api/devices/[id]/details` — requires auth. Updates `type`, `voltage`, `torque`, `max_rpm`, `ip_rating` on an existing node.
 - API route: `POST /api/diagnostics/run` — requires auth. Pings Azure IoT Hub per-node, checks Supabase DB, measures latencies, inserts results into `diagnostics_logs`
 
 ### Device Registration Flow
 
 1. User clicks "Register New Node" on `/nodes` → opens `RegisterDeviceDialog`
-2. Dialog POSTs to `/api/devices/register` with `device_name`, `location`, optional `custom_device_id`
-3. Server generates a slug-based device ID, checks for duplicates in Supabase
-4. If `AZURE_IOT_HUB_CONNECTION_STRING` is set: creates symmetric-key identity in Azure IoT Hub, returns `primaryKey` + `iotHubHost`
-5. Inserts row into `motor_nodes` with `iot_device_id` linking to the Azure identity
-6. Credentials displayed once — user copies them to flash onto the ESP32/MCU
+2. **Step 1**: Enter `device_name` + `location` → POST to `/api/devices/register`
+3. Server generates a slug-based device ID, creates symmetric-key identity in Azure IoT Hub, inserts row into `motor_nodes` with defaults (`type: "Stepper"`, `"---"` for specs)
+4. **Step 2**: `DeviceDetailsForm` — motor type, rated voltage, max RPM, torque, IP rating → PATCH to `/api/devices/[id]/details`. Skippable.
+5. After step 2 (or skip): Azure credentials displayed once — user copies them to flash onto the ESP32/MCU
+
+### Calibrate (Update Device Details)
+
+- Button on `DeviceCard` (nodes page) and motor detail page (`/motor/[id]`)
+- Opens `CalibrateDialog` which reuses `DeviceDetailsForm` pre-filled with existing values
+- PATCH to `/api/devices/[id]/details` — requires auth
 
 ### Diagnostics Run
 
@@ -165,8 +171,7 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | # | Task | Notes |
 |---|------|-------|
 | 1 | Password reset | Supabase `resetPasswordForEmail` flow — needs reset page + email template |
-| 2 | Terminal / Remote command | Currently fully fake/hardcoded. Replace with real command history, per-node targeting, response streaming |
-| 3 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |
-| 4 | Reduce session TTL | Supabase dashboard → Authentication → Settings → access token to 15 min, refresh token to 7 days |
-| 5 | Password change endpoint | Invalidate all existing refresh tokens on password change. API route + preferences UI |
-| 6 | Re-auth gating | Require password re-entry before device registration and diagnostics runs |
+| 2 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |
+| 3 | Reduce session TTL | Supabase dashboard → Authentication → Settings → access token to 15 min, refresh token to 7 days |
+| 4 | Password change endpoint | Invalidate all existing refresh tokens on password change. API route + preferences UI |
+| 5 | Re-auth gating | Require password re-entry before device registration and diagnostics runs |

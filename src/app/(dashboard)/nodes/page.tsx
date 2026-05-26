@@ -52,7 +52,7 @@ export default function NodesPage() {
         {loading ? (
           <p className="col-span-full text-on-surface-variant font-mono text-[14px]">Loading nodes...</p>
         ) : (
-          nodes.map((node) => <DeviceCard key={node.id} node={node} />)
+          nodes.map((node) => <DeviceCard key={node.id} node={node} onUpdate={refetch} />)
         )}
       </section>
 

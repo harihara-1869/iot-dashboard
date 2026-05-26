@@ -1,13 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MotorNode } from "@/lib/types";
 import StatusChip from "@/components/ui/status-chip";
+import CalibrateDialog from "@/components/nodes/calibrate-dialog";
 import { getNodeImage } from "@/lib/images";
 
-export default function DeviceCard({ node }: { node: MotorNode }) {
+export default function DeviceCard({ node, onUpdate }: { node: MotorNode; onUpdate?: () => void }) {
   const router = useRouter();
-  const imageUrl = getNodeImage(node.id);
+  const [showCalibrate, setShowCalibrate] = useState(false);
+  const imageUrl = getNodeImage(node.id, node.type);
 
   return (
     <article
@@ -85,7 +88,10 @@ export default function DeviceCard({ node }: { node: MotorNode }) {
         </div>
 
         <div className="mt-auto grid grid-cols-2 gap-2">
-          <button className="border border-outline-variant py-2 rounded font-sans text-[14px] leading-5 hover:bg-surface-container transition-colors">
+          <button
+            onClick={() => setShowCalibrate(true)}
+            className="border border-outline-variant py-2 rounded font-sans text-[14px] leading-5 hover:bg-surface-container transition-colors"
+          >
             {node.status === "Maintenance" ? "Order Parts" : "Calibrate"}
           </button>
           {node.status === "Maintenance" ? (
@@ -102,6 +108,16 @@ export default function DeviceCard({ node }: { node: MotorNode }) {
           )}
         </div>
       </div>
+
+      <CalibrateDialog
+        open={showCalibrate}
+        node={node}
+        onClose={() => setShowCalibrate(false)}
+        onUpdated={() => {
+          setShowCalibrate(false);
+          onUpdate?.();
+        }}
+      />
     </article>
   );
 }

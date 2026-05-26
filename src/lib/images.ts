@@ -10,6 +10,12 @@ const NODE_IMAGE_MAP: Record<string, string> = {
   "NEMA-17-Precision": IMAGES.node,
 };
 
-export function getNodeImage(nodeId: string): string | null {
-  return NODE_IMAGE_MAP[nodeId] ?? null;
+const TYPE_IMAGE_MAP: Record<string, string> = {
+  Stepper: IMAGES.node,
+};
+
+export function getNodeImage(nodeId: string, type?: string): string | null {
+  if (NODE_IMAGE_MAP[nodeId]) return NODE_IMAGE_MAP[nodeId];
+  if (type && TYPE_IMAGE_MAP[type]) return TYPE_IMAGE_MAP[type];
+  return null;
 }

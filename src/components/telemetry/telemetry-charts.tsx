@@ -13,20 +13,24 @@ function formatChartData(history: TelemetryPoint[]) {
   }));
 }
 
-// Fallback data when no DB data is available
-const fallbackData = [
-  { time: "00:00", vibration: 1.1, temperature: 40, current: 1.3, rpm: 3000 },
-  { time: "02:00", vibration: 1.3, temperature: 42, current: 1.5, rpm: 3010 },
-  { time: "04:00", vibration: 1.0, temperature: 41, current: 1.4, rpm: 2990 },
-  { time: "06:00", vibration: 1.4, temperature: 43, current: 1.6, rpm: 3020 },
-  { time: "08:00", vibration: 1.2, temperature: 42.5, current: 1.5, rpm: 3005 },
-  { time: "10:00", vibration: 1.1, temperature: 44, current: 1.7, rpm: 3015 },
-  { time: "12:00", vibration: 1.3, temperature: 43, current: 1.5, rpm: 3000 },
-  { time: "14:00", vibration: 1.2, temperature: 42.5, current: 1.5, rpm: 3002 },
-];
-
 export default function TelemetryCharts({ data }: { data: TelemetryPoint[] }) {
-  const chartData = data.length > 0 ? formatChartData(data) : fallbackData;
+  if (data.length === 0) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter mt-[24px]">
+        <div className="bg-white border border-[#E2E8F0] rounded-lg p-4 flex items-center justify-center h-64">
+          <p className="font-mono text-[14px] text-on-surface-variant">No telemetry data</p>
+        </div>
+        <div className="bg-white border border-[#E2E8F0] rounded-lg p-4 flex items-center justify-center h-64">
+          <p className="font-mono text-[14px] text-on-surface-variant">No telemetry data</p>
+        </div>
+        <div className="bg-white border border-[#E2E8F0] rounded-lg p-4 flex items-center justify-center h-64">
+          <p className="font-mono text-[14px] text-on-surface-variant">No telemetry data</p>
+        </div>
+      </div>
+    );
+  }
+
+  const chartData = formatChartData(data);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter mt-[24px]">

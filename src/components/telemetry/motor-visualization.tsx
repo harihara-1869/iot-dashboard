@@ -8,7 +8,7 @@ export default function MotorVisualization({
   node: MotorNode;
   telemetry?: TelemetrySnapshot;
 }) {
-  const imageUrl = getNodeImage(node.id);
+  const imageUrl = getNodeImage(node.id, node.type);
   const rpm = telemetry?.rpm?.toFixed(0) ?? "—";
   const temperature = telemetry?.temperature?.toFixed(1) ?? "—";
   const vibration = telemetry?.vibration?.toFixed(1) ?? "—";

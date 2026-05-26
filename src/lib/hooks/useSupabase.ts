@@ -35,7 +35,7 @@ export function useMotorNode(id: string | undefined) {
   const [node, setNode] = useState<MotorNode | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  function fetchNode() {
     if (!id) return;
     setLoading(true);
     supabase
@@ -47,9 +47,13 @@ export function useMotorNode(id: string | undefined) {
         if (data) setNode(data as MotorNode);
         setLoading(false);
       });
+  }
+
+  useEffect(() => {
+    fetchNode();
   }, [id]);
 
-  return { node, loading };
+  return { node, loading, refetch: fetchNode };
 }
 
 export function useDashboardKpis() {
