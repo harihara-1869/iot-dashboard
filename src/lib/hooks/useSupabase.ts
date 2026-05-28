@@ -14,7 +14,8 @@ export function useMotorNodes() {
     const { data } = await supabase
       .from("motor_nodes")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (data) setNodes(data as MotorNode[]);
     setLoading(false);
   }, []);
