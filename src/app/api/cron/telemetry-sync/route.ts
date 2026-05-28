@@ -69,17 +69,17 @@ export async function GET(request: Request) {
     consumerClient = new EventHubConsumerClient("$Default", connectionString);
 
     const partitionIds = await consumerClient.getPartitionIds();
-    console.log(
-      `Telemetry sync: ${partitionIds.length} partitions: ${partitionIds.join(", ")}`,
-    );
 
     const { data: checkpoints } = await supabase
       .from("telemetry_checkpoints")
-      .select("partition_id, event_hub_offset");
-    const checkpointMap = new Map(
-      (checkpoints ?? []).map((c: { partition_id: string; event_hub_offset: string }) => [c.partition_id, c.event_hub_offset]),
-    );
-    console.log(`Telemetry sync: ${checkpointMap.size} checkpoints loaded`);
+      .select("partition_id, event_hub_offset, updated_at");
+    const staleCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const checkpointMap = new Map<string, string>();
+    for (const c of (checkpoints ?? []) as { partition_id: string; event_hub_offset: string; updated_at: string }[]) {
+      if (c.updated_at && c.updated_at > staleCutoff) {
+        checkpointMap.set(c.partition_id, c.event_hub_offset);
+      }
+    }
 
     const subscriptions = partitionIds.map((partitionId) => {
       const lastOffset = checkpointMap.get(partitionId);
@@ -107,9 +107,7 @@ export async function GET(request: Request) {
       );
     });
 
-    console.log(`Telemetry sync: draining ${subscriptions.length} partitions for 8s...`);
     await new Promise((resolve) => setTimeout(resolve, 8000));
-    console.log(`Telemetry sync: collected ${partitionEvents.length} events, closing...`);
 
     await consumerClient.close();
   } catch (e) {
@@ -128,10 +126,13 @@ export async function GET(request: Request) {
   const newCheckpoints = new Map<string, string>();
 
   for (const { partitionId, event } of batch) {
-    try {
-      const raw = typeof event.body === "string" ? event.body : JSON.stringify(event.body);
-      console.log(`Telemetry sync: raw event body: ${raw}`);
+    const offset = event.offset.toString();
+    const currentMax = newCheckpoints.get(partitionId);
+    if (!currentMax || Number(offset) > Number(currentMax)) {
+      newCheckpoints.set(partitionId, offset);
+    }
 
+    try {
       let payload: TelemetryPayload;
       if (typeof event.body === "string") {
         payload = JSON.parse(event.body);
@@ -151,9 +152,6 @@ export async function GET(request: Request) {
         .maybeSingle();
 
       if (nodeError || !motorNode) {
-        console.log(
-          `Telemetry sync: skipping unknown device "${payload.device_id}"`,
-        );
         skipped++;
         continue;
       }
@@ -168,19 +166,13 @@ export async function GET(request: Request) {
         status: payload.status ?? "ok",
         status_message: payload.status_message ?? null,
         partition_id: partitionId,
-        event_hub_offset: event.offset.toString(),
+        event_hub_offset: offset,
       });
-
-      const currentMax = newCheckpoints.get(partitionId);
-      if (!currentMax || Number(event.offset) > Number(currentMax)) {
-        newCheckpoints.set(partitionId, event.offset.toString());
-      }
 
       processed++;
     } catch (e) {
       errors++;
-      const message = e instanceof Error ? e.message : String(e);
-      console.error(`Telemetry sync: event parse error: ${message}`);
+      console.error(`Telemetry sync: event parse error:`, e instanceof Error ? e.message : String(e));
     }
   }
 

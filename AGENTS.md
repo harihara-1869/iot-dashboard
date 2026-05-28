@@ -84,7 +84,7 @@ All RLS policies require `auth.role() = 'authenticated'`. The publishable key al
 
 ## Seed & Schema
 
-- **Schema**: `supabase/schema.sql` — Creates `motor_nodes`, `telemetry_live`, `diagnostics_logs`, `terminal_logs`, `profiles` + RLS + Realtime publication + `handle_new_user()` trigger
+- **Schema**: `supabase/schema.sql` — Creates `motor_nodes`, `telemetry_live`, `diagnostics_logs`, `terminal_logs`, `profiles`, `telemetry_checkpoints` + RLS + Realtime publication + `handle_new_user()` trigger
 - **RPC**: `supabase/rpc.sql` — Creates `latest_telemetry_averages()` function for dashboard KPI cards
 - **Seed**: `supabase/seed.sql` (SQL) or `npx tsx supabase/seed.ts` (TypeScript) — 8 nodes + 8 diagnostics logs + 24h telemetry. Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (bypasses RLS via service role key).
 - **Schema order**: `schema.sql` → `rpc.sql` → `seed.sql`
@@ -186,13 +186,12 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 ```
 2. Vercel Cron hits `GET /api/cron/telemetry-sync` every minute
 3. Route creates an `EventHubConsumerClient` (`$Default` consumer group, eventHubName omitted — `EntityPath` in the connection string handles it)
-4. Gets partition IDs, loads last offset from `telemetry_checkpoints` table per partition
-5. Subscribes to each partition with its checkpointed offset (`isInclusive: false` — never re-reads)
+4. Gets partition IDs, loads last offset from `telemetry_checkpoints` table per partition. Checkpoints older than 24h are discarded (IoT Hub free tier retention is 1 day — stale offsets cause SDK errors).
+5. Subscribes to each partition with its checkpointed offset (`isInclusive: false` — never re-reads). Falls back to `earliestEventPosition` if no checkpoint exists.
 6. Receives events for 8 seconds via per-partition `subscribe(partitionId, ...)` (max 150 events)
-7. For each event: parses JSON → looks up `motor_nodes.id` by `iot_device_id = device_id` → builds insert row with `partition_id` + `event_hub_offset`
-8. Single `supabase.from("telemetry_live").upsert(rows, { onConflict: "partition_id, event_hub_offset", ignoreDuplicates: true })` — duplicate-safe
-9. Updates `telemetry_checkpoints` with highest offset per partition
-10. Returns `{ processed, skipped, errors }`
+7. For each event: parses JSON → looks up `motor_nodes.id` by `iot_device_id = device_id` → builds insert row with `partition_id` + `event_hub_offset`. Unknown devices are silently skipped.
+8. All events advance the checkpoint offset (even skipped ones) — burns through stale messages without re-processing them.
+9. Single `supabase.from("telemetry_live").upsert(rows, { onConflict: "partition_id, event_hub_offset", ignoreDuplicates: true })` — duplicate-safe
 
 ### Duplicate safety
 
