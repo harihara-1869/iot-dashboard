@@ -122,8 +122,8 @@ export async function GET(request: Request) {
   }
 
   const batch = partitionEvents.slice(0, 150);
-  const rows: TelemetryRow[] = [];
   const newCheckpoints = new Map<string, string>();
+  const parsed: { partitionId: string; offset: string; payload: TelemetryPayload }[] = [];
 
   for (const { partitionId, event } of batch) {
     const offset = event.offset.toString();
@@ -145,19 +145,34 @@ export async function GET(request: Request) {
         continue;
       }
 
-      const { data: motorNode, error: nodeError } = await supabase
-        .from("motor_nodes")
-        .select("id")
-        .eq("iot_device_id", payload.device_id)
-        .maybeSingle();
+      parsed.push({ partitionId, offset, payload });
+    } catch (e) {
+      errors++;
+      console.error(`Telemetry sync: event parse error:`, e instanceof Error ? e.message : String(e));
+    }
+  }
 
-      if (nodeError || !motorNode) {
+  const rows: TelemetryRow[] = [];
+
+  if (parsed.length > 0) {
+    const deviceIds = [...new Set(parsed.map((p) => p.payload.device_id))];
+
+    const { data: nodes } = await supabase
+      .from("motor_nodes")
+      .select("id, iot_device_id")
+      .in("iot_device_id", deviceIds);
+
+    const nodeMap = new Map((nodes ?? []).map((n: { id: string; iot_device_id: string }) => [n.iot_device_id, n.id]));
+
+    for (const { partitionId, offset, payload } of parsed) {
+      const nodeId = nodeMap.get(payload.device_id);
+      if (!nodeId) {
         skipped++;
         continue;
       }
 
       rows.push({
-        node_id: motorNode.id,
+        node_id: nodeId,
         timestamp: payload.timestamp || new Date().toISOString(),
         rpm: payload.rpm,
         temperature: payload.temperature ?? payload.temperature_c ?? 0,
@@ -170,9 +185,6 @@ export async function GET(request: Request) {
       });
 
       processed++;
-    } catch (e) {
-      errors++;
-      console.error(`Telemetry sync: event parse error:`, e instanceof Error ? e.message : String(e));
     }
   }
 
