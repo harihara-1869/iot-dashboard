@@ -42,9 +42,13 @@ src/
 │   ├── privacy/page.tsx                   # Privacy policy (public)
 │   └── api/
 │       ├── auth/
-│       │   └── signup/route.ts            # POST — create user via Supabase Auth
-│       ├── devices/register/route.ts      # POST — authenticated device registration
-│       └── diagnostics/run/route.ts       # POST — system-wide health check (Azure + DB)
+│       │   ├── confirm/route.ts             # GET — email confirmation (verifyOtp)
+│       │   └── signup/route.ts              # POST — create user via Supabase Auth
+│       ├── cron/
+│       │   └── telemetry-sync/route.ts      # GET — Vercel Cron telemetry ingestion
+│       ├── devices/register/route.ts        # POST — authenticated device registration
+│       ├── devices/[id]/details/route.ts    # PATCH — update motor specs
+│       └── diagnostics/run/route.ts         # POST — system-wide health check (Azure + DB)
 ├── components/
 │   ├── layout/       # Sidebar, Topbar, StatusBar, LoginHeader, LoginFooter
 │   ├── ui/           # StatusChip, KpiCard, DataField, Button, GlassPanel, FluidStatus
@@ -52,7 +56,7 @@ src/
 │   ├── health/       # DiagnosticsGrid, HistoryTable
 │   ├── terminal/     # TerminalWindow, MetricsSidebar
 │   ├── telemetry/    # MotorVisualization, TelemetryCharts (Recharts)
-│   └── auth/         # ActivityMonitor (client-only inactivity auto-logout)
+│   └── auth/         # ActivityMonitor (planned — not yet implemented)
 ├── lib/
 │   ├── supabase/     # Browser client (createBrowserClient) + Server client (createServerClient)
 │   ├── iot-hub/      # Azure IoT Hub device identity registry
@@ -81,6 +85,7 @@ src/
 | `POST /api/auth/signup` | Create user via Supabase Auth | No |
 | `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes |
 | `POST /api/diagnostics/run` | Run system diagnostics (Azure + DB + server) | Yes |
+| `GET /api/cron/telemetry-sync` | Vercel Cron — ingest telemetry from IoT Hub via Event Hubs | No (CRON_SECRET) |
 
 ## Quick Start
 
@@ -174,11 +179,14 @@ If email confirmation is enabled, check your inbox. Otherwise log in directly at
 ## Required Environment Variables
 
 | Variable | Description |
-|---|---|
+|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (for seed + telemetry cron) |
 | `AZURE_IOT_HUB_HOST` | Azure IoT Hub hostname |
 | `AZURE_IOT_HUB_CONNECTION_STRING` | IoT Hub owner connection string |
+| `IOT_HUB_EVENTHUB_CONNECTION` | IoT Hub → Built-in endpoints → Event Hub-compatible connection string |
+| `CRON_SECRET` | Random string — authenticates Vercel Cron calls |
 
 See `.env.local.example` for the template.
 
@@ -215,7 +223,7 @@ Authentication uses **Supabase Auth** (email + password) with `@supabase/ssr` fo
 
 - **Login**: `supabase.auth.signInWithPassword({ email, password })` in the `useAuth` hook
 - **Logout**: `supabase.auth.signOut()` — clears Supabase session cookies
-- **Session cookie**: `sb-{project-ref}-auth-token` managed by `@supabase/ssr`
+- **Session cookie**: `__Host-sb-auth-token` managed by `@supabase/ssr`
 - **User data**: `operator_id` stored in `user_metadata.operator_id` during signup; auto-populated to `public.profiles` via `handle_new_user()` trigger
 - **Signup gate**: Controlled by Supabase dashboard → Authentication → Settings → "Allow new users to sign up" toggle
 - **Email confirmation**: Configurable in Supabase dashboard; `/auth/confirm` route handles OTP redirects
@@ -228,13 +236,9 @@ Authentication uses **Supabase Auth** (email + password) with `@supabase/ssr` fo
 
 All tables require `auth.role() = 'authenticated'`. The anon/publishable key alone cannot read or write data — a valid user session JWT must be present. The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
 
-### Inactivity Auto-Logout (30 min)
+### Inactivity Auto-Logout (30 min) — Planned
 
-`src/components/auth/activity-monitor.tsx` watches `mousemove`, `keydown`, `click`, `scroll`, `touchstart` across all protected pages:
-
-- After **28 minutes** of inactivity: displays a modal with a live 2-minute countdown and "Stay logged in" / "Logout now" buttons.
-- After **30 minutes** total: calls `supabase.auth.signOut()` and redirects to `/login`.
-- Purely client-side — no server heartbeat. The Supabase session cookie TTL (~1h by default) determines how long the session remains valid if the browser tab is closed without logging out.
+Client-side inactivity monitoring with a 28-minute warning modal and 30-minute auto-logout. Planned for a future release — not yet implemented (see Future TODOs in AGENTS.md).
 
 ## Firmware Design (ESP32 / MCU)
 
@@ -252,7 +256,7 @@ The system uses **edge-native analysis** — each motor node runs self-diagnosti
 │  │  - Temperature (RTD)  │  │                           │  ┌────────────────┐  │
 │  │  - Vibration (IMU)    │  │                           │  │ MQTT Broker    │──► Supabase
 │  │  - Current (ACS712)   │  │                           │  └────────────────┘  │  (Realtime)
-│  │  - Voltage divider    │  │                           └──────────────────────┘
+│  └───────────────────────┘  │                           └──────────────────────┘
 │  └───────────────────────┘  │
 │  ┌───────────────────────┐  │
 │  │ Local Analysis Engine │  │
@@ -275,28 +279,29 @@ devices/{deviceId}/messages/events/
 
 ```json
 {
-  "device_id": "esp32-production-motor-44qcpd",
-  "timestamp": "2025-05-17T14:30:00Z",
+  "device_id": "conveyor-motor-b3-abc123",
+  "timestamp": "2026-05-26T12:00:00Z",
   "rpm": 3450.0,
-  "temperature_c": 42.5,
-  "vibration_mms": 1.2,
-  "current_a": 12.1,
-  "voltage_v": 220.4,
-  "status": "ok",
-  "status_message": "All parameters within nominal range"
+  "temperature": 42.5,
+  "vibration": 1.2,
+  "current": 12.1,
+  "status": "Active",
+  "status_message": "Normal operation"
 }
 ```
+
+> **Backward-compatible**: The ingestion route also accepts the legacy field names `temperature_c`, `vibration_mms`, `current_a`, and `voltage_v` (ignored). New deployments should use the schema above. Legacy support will be removed in a future commit.
 
 ### Status Codes
 
 The node performs on-device analysis and sends one of:
 
 | Status | Meaning | Dashboard Badge |
-|---|---|---|
-| `ok` | All sensors nominal, no anomalies | Active (green) |
+|---|---|---|---|
+| `Active` | All sensors nominal, normal operation | Active (green) |
 | `warning` | Parameter approaching threshold (e.g. temp ±5°C from normal) | Maintenance Required (amber) |
 | `critical` | Threshold exceeded or sensor failure | Maintenance Required (red) |
-| `idle` | Motor stopped but healthy | Idle (orange) |
+| `idle` | Motor stopped but healthy | Idle (amber) |
 
 ### On-Device Analysis Logic (Pseudocode)
 
@@ -307,10 +312,9 @@ void analyze_and_report() {
   float temp    = read_rtd();
   float vib     = read_imu_rms();
   float current = read_acs712();
-  float voltage = read_voltage_divider();
 
-  String status = "ok";
-  String message = "All parameters within nominal range";
+  String status = "Active";
+  String message = "Normal operation";
 
   // Threshold checks (configurable per motor type)
   if (temp > TEMP_CRITICAL_THRESHOLD || vib > VIB_CRITICAL_THRESHOLD) {
@@ -325,7 +329,7 @@ void analyze_and_report() {
   }
 
   // Build and publish JSON payload over MQTT
-  publish_telemetry(rpm, temp, vib, current, voltage, status, message);
+  publish_telemetry(rpm, temp, vib, current, status, message);
 }
 ```
 
@@ -346,9 +350,10 @@ Use the [Azure IoT Hub MQTT](https://learn.microsoft.com/en-us/azure/iot-hub/iot
 
 1. ESP32 reads sensors → runs local analysis → determines status
 2. Publishes telemetry JSON over MQTT to Azure IoT Hub every 5 seconds
-3. IoT Hub routes messages to a consumer that writes to `telemetry_live` table
-4. Supabase Realtime pushes new rows to the dashboard UI
-5. Dashboard KPI cards, charts, and device status badges update live
+3. Vercel Cron hits `GET /api/cron/telemetry-sync` every minute → `EventHubConsumerClient` drains events via the IoT Hub built-in Event Hub-compatible endpoint
+4. Route bulk-inserts rows into `telemetry_live` using the Supabase service role key (bypasses RLS)
+5. Supabase Realtime pushes new rows to the dashboard UI
+6. Dashboard KPI cards, charts, and device status badges update live
 
 ## License
 

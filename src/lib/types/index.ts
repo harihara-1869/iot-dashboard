@@ -21,10 +21,11 @@ export interface TelemetryPoint {
   node_id: string;
   timestamp: string;
   rpm: number;
-  temperature_c: number;
-  vibration_mms: number;
-  current_a: number;
-  voltage_v: number;
+  temperature: number;
+  vibration: number;
+  current: number;
+  status: string;
+  status_message: string;
 }
 
 export interface TelemetrySnapshot {

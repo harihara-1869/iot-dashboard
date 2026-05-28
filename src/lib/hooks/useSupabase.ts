@@ -76,9 +76,9 @@ export function useDashboardKpis() {
 
       if (!rpcError && latest) {
         const avg = (Array.isArray(latest) ? latest[0] : latest) as Record<string, number>;
-        avgVib = String(avg?.vibration_mms?.toFixed?.(1) ?? avgVib);
-        avgTemp = String(avg?.temperature_c?.toFixed?.(0) ?? avgTemp);
-        avgCur = String(avg?.current_a?.toFixed?.(1) ?? avgCur);
+        avgVib = String(avg?.vibration?.toFixed?.(1) ?? avgVib);
+        avgTemp = String(avg?.temperature?.toFixed?.(0) ?? avgTemp);
+        avgCur = String(avg?.current?.toFixed?.(1) ?? avgCur);
       }
 
       setKpis({
@@ -133,7 +133,7 @@ export function useLatestTelemetry(nodeId?: string) {
     if (!nodeId) return;
     supabase
       .from("telemetry_live")
-      .select("rpm, temperature_c, vibration_mms, current_a")
+      .select("rpm, temperature, vibration, current")
       .eq("node_id", nodeId)
       .order("timestamp", { ascending: false })
       .limit(1)
@@ -143,9 +143,9 @@ export function useLatestTelemetry(nodeId?: string) {
           const d = data as TelemetryPoint;
           setLatest({
             rpm: d.rpm,
-            temperature: d.temperature_c,
-            vibration: d.vibration_mms,
-            current: d.current_a,
+          temperature: d.temperature,
+          vibration: d.vibration,
+          current: d.current,
           });
         }
       });

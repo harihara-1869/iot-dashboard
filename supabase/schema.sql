@@ -23,13 +23,23 @@ CREATE TABLE IF NOT EXISTS telemetry_live (
   node_id TEXT NOT NULL REFERENCES motor_nodes(id) ON DELETE CASCADE,
   timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
   rpm NUMERIC(8,1) NOT NULL,
-  temperature_c NUMERIC(5,1) NOT NULL,
-  vibration_mms NUMERIC(5,2) NOT NULL,
-  current_a NUMERIC(5,2) NOT NULL,
-  voltage_v NUMERIC(6,1) NOT NULL
+  temperature NUMERIC(5,1) NOT NULL,
+  vibration NUMERIC(5,2) NOT NULL,
+  current NUMERIC(5,2) NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ok',
+  status_message TEXT,
+  partition_id TEXT,
+  event_hub_offset TEXT,
+  UNIQUE(partition_id, event_hub_offset)
 );
 
 CREATE INDEX IF NOT EXISTS idx_telemetry_node_time ON telemetry_live(node_id, timestamp DESC);
+
+-- Alter existing table (safe if table already exists from old schema)
+ALTER TABLE IF EXISTS telemetry_live ADD COLUMN IF NOT EXISTS partition_id TEXT;
+ALTER TABLE IF EXISTS telemetry_live ADD COLUMN IF NOT EXISTS event_hub_offset TEXT;
+ALTER TABLE IF EXISTS telemetry_live DROP CONSTRAINT IF EXISTS uq_telemetry_partition_offset;
+ALTER TABLE IF EXISTS telemetry_live ADD CONSTRAINT uq_telemetry_partition_offset UNIQUE(partition_id, event_hub_offset);
 
 -- Diagnostics Logs
 CREATE TABLE IF NOT EXISTS diagnostics_logs (
@@ -60,12 +70,20 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Cron checkpoints for telemetry ingestion
+CREATE TABLE IF NOT EXISTS telemetry_checkpoints (
+  partition_id TEXT PRIMARY KEY,
+  event_hub_offset TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- RLS Policies — require authentication for all access
 ALTER TABLE motor_nodes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE telemetry_live ENABLE ROW LEVEL SECURITY;
 ALTER TABLE diagnostics_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE terminal_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE telemetry_checkpoints ENABLE ROW LEVEL SECURITY;
 
 -- Drop old permissive policies
 DROP POLICY IF EXISTS "Allow all on motor_nodes" ON motor_nodes;
@@ -86,6 +104,10 @@ CREATE POLICY "Authenticated access on telemetry_live" ON telemetry_live FOR ALL
 CREATE POLICY "Authenticated access on diagnostics_logs" ON diagnostics_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on terminal_logs" ON terminal_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on profiles" ON profiles FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "deny_authenticated" ON telemetry_checkpoints;
+CREATE POLICY "deny_authenticated" ON telemetry_checkpoints
+  FOR ALL TO authenticated USING (false);
 
 -- Profiles trigger — auto-create profile on email-confirmed signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

@@ -83,10 +83,11 @@ async function seed() {
         node_id: node.id,
         timestamp: t.toISOString(),
         rpm: jitter(base.rpm, 10),
-        temperature_c: jitter(base.temp, 2),
-        vibration_mms: jitter(base.vib, 0.2),
-        current_a: jitter(base.cur, 0.25),
-        voltage_v: jitter(base.volt, 1),
+        temperature: jitter(base.temp, 2),
+        vibration: jitter(base.vib, 0.2),
+        current: jitter(base.cur, 0.25),
+        status: 'ok',
+        status_message: 'Seed telemetry',
       });
     }
   }

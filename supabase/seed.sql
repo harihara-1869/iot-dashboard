@@ -60,14 +60,14 @@ BEGIN
     -- Generate 24 hours of data at 5-minute intervals
     t := now() - INTERVAL '24 hours';
     WHILE t <= now() LOOP
-      INSERT INTO telemetry_live (node_id, timestamp, rpm, temperature_c, vibration_mms, current_a, voltage_v)
+      INSERT INTO telemetry_live (node_id, timestamp, rpm, temperature, vibration, current, status)
       VALUES (
         node_record.id, t,
         base_rpm + (random() * 20 - 10),
         base_temp + (random() * 4 - 2),
         base_vib + (random() * 0.4 - 0.2),
         base_cur + (random() * 0.5 - 0.25),
-        CASE node_record.type WHEN 'Induction' THEN 480 WHEN 'Cooling' THEN 230 WHEN 'Hydraulic' THEN 208 ELSE 12 END
+        'ok'
       );
       t := t + INTERVAL '5 minutes';
     END LOOP;

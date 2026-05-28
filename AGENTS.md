@@ -10,6 +10,29 @@ pnpm lint         # ESLint only — no typecheck
 
 Type checking happens inside `pnpm build`, not as a separate script.
 
+## Dev Server Troubleshooting
+
+### High CPU / disk hammering when idle
+
+If `pnpm dev` sits at high CPU (>100%) and heavy disk I/O beyond the initial compilation window, the most common cause is **stale `.next/` cache** from orphaned route directories. Turbopack detects compiled output with no corresponding source file and loops trying to reconcile them.
+
+**Diagnosis:**
+```bash
+# Check for empty directory-based routes that have stale cache
+find src/app -type d -empty | while read d; do ls ".next/dev/server/$d" 2>/dev/null && echo "STALE: $d"; done
+```
+
+**Fix:**
+```bash
+# Kill dev server, remove empty route dirs, nuke .next cache, restart
+pkill -f "next dev"
+find src/app -type d -empty -delete
+rm -rf .next
+pnpm dev
+```
+
+Also verify no empty `src/app/` subdirectories are committed — they can carry stale cache between builds.
+
 ## Tailwind v4 — No tailwind.config
 
 All design tokens live in `src/app/globals.css` via `@theme` blocks. There is **no** `tailwind.config.ts` or `tailwind.config.js`. Do not add one.
@@ -67,6 +90,8 @@ All RLS policies require `auth.role() = 'authenticated'`. The publishable key al
 - **Schema order**: `schema.sql` → `rpc.sql` → `seed.sql`
 - `supabase/` is excluded from TypeScript compilation (`tsconfig.json`)
 - `ALTER PUBLICATION supabase_realtime ADD TABLE telemetry_live` is wrapped in `DO $$ ... EXCEPTION WHEN duplicate_object` — running schema.sql twice is safe
+- `telemetry_live` schema matches the ESP32 payload: `temperature`, `vibration`, `current`, `status`, `status_message` (no `temperature_c`/`vibration_mms`/`current_a`/`voltage_v` — renamed/removed 2026-05-28)
+- **Schema changes require a fresh DB**: drop all tables before re-running schema.sql — see Dev Server Troubleshooting for stale cache concerns if old column references linger
 
 ## Design System — Material Design 3 Light Theme
 
@@ -127,6 +152,55 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 4. Server runs a lightweight Supabase query to confirm DB is reachable, measures query latency
 5. All checks inserted into `diagnostics_logs` with `check_type`, `result`, `performance` (latency in ms), `operator`, `node_id`
 6. `DiagnosticsGrid` on `/health` reads latest logs and displays 3 cards: Server (hardcoded), Database (latency from log), Edge Pings (average latency + slow nodes >500ms)
+
+## Telemetry Ingestion
+
+- **Cron route**: `GET /api/cron/telemetry-sync` — runs every minute via Vercel Cron (`vercel.json`)
+- **`@azure/event-hubs`** is server-only (same restriction as `azure-iothub`). Do not import in client components.
+- **`vercel.json`** controls the cron schedule (`* * * * *`).
+- **Schedule**: 1-minute polling interval, events received in 8-second windows, ~10s max message delay.
+- The route uses `SUPABASE_SERVICE_ROLE_KEY` (service role) to bypass RLS — no user session required.
+
+### Env vars
+
+| Variable | Source |
+|---|---|
+| `IOT_HUB_EVENTHUB_CONNECTION` | Azure IoT Hub → Built-in endpoints → Event Hub-compatible endpoint connection string |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase dashboard → Settings → API → `service_role` key |
+| `CRON_SECRET` | Any random string — set in Vercel dashboard environment variables and used by the cron route for `Authorization: Bearer <secret>` auth |
+
+### Data flow
+
+1. ESP32 publishes telemetry JSON to Azure IoT Hub over MQTT (every 5s):
+```json
+{
+  "device_id": "conveyor-motor-b3-abc123",
+  "timestamp": "2026-05-26T12:00:00Z",
+  "rpm": 3450.0,
+  "temperature": 42.5,
+  "vibration": 1.2,
+  "current": 12.1,
+  "status": "Active",
+  "status_message": "Normal operation"
+}
+```
+2. Vercel Cron hits `GET /api/cron/telemetry-sync` every minute
+3. Route creates an `EventHubConsumerClient` (`$Default` consumer group, eventHubName omitted — `EntityPath` in the connection string handles it)
+4. Gets partition IDs, loads last offset from `telemetry_checkpoints` table per partition
+5. Subscribes to each partition with its checkpointed offset (`isInclusive: false` — never re-reads)
+6. Receives events for 8 seconds via per-partition `subscribe(partitionId, ...)` (max 150 events)
+7. For each event: parses JSON → looks up `motor_nodes.id` by `iot_device_id = device_id` → builds insert row with `partition_id` + `event_hub_offset`
+8. Single `supabase.from("telemetry_live").upsert(rows, { onConflict: "partition_id, event_hub_offset", ignoreDuplicates: true })` — duplicate-safe
+9. Updates `telemetry_checkpoints` with highest offset per partition
+10. Returns `{ processed, skipped, errors }`
+
+### Duplicate safety
+
+`telemetry_live` has a `UNIQUE(partition_id, event_hub_offset)` constraint. The route inserts with `.upsert({ ignoreDuplicates: true })` (ON CONFLICT DO NOTHING). If the server crashes after insert but before checkpoint update, the next cron run re-reads the same events but they're silently skipped by the constraint.
+
+### Connection string format
+
+The `IOT_HUB_EVENTHUB_CONNECTION` **must** start with `Endpoint=`. If the connection string already contains `EntityPath=...`, omit the `eventHubName` argument from `EventHubConsumerClient` — the SDK reads it from the connection string. Passing a mismatched value causes a runtime error.
 
 ## Charts
 

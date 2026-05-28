@@ -6,9 +6,9 @@ import type { TelemetryPoint } from "@/lib/types";
 function formatChartData(history: TelemetryPoint[]) {
   return history.map((p) => ({
     time: new Date(p.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-    vibration: Number(p.vibration_mms),
-    temperature: Number(p.temperature_c),
-    current: Number(p.current_a),
+    vibration: Number(p.vibration),
+    temperature: Number(p.temperature),
+    current: Number(p.current),
     rpm: Number(p.rpm),
   }));
 }
