@@ -152,6 +152,47 @@ The `iothubowner` key has full Hub-level permissions. For production, create sco
 - **Rotate keys quarterly** via the Azure Portal → IoT Hub → Security settings → Shared access policies
 - The cron telemetry endpoint uses a separate Event Hub-compatible connection string (`IOT_HUB_EVENTHUB_CONNECTION`) with Event Hub data-plane permissions, not the IoT Hub registry key
 
+## Security
+
+### Rate Limiting
+
+In-memory rate limiter (`src/lib/rate-limit.ts`) applied to:
+
+| Endpoint | Limit | Keyed by |
+|---|---|---|
+| `POST /api/auth/signup` | 5 attempts/hour | IP address |
+| `POST /api/devices/register` | 10 attempts/hour | user ID |
+| `POST /api/diagnostics/run` | 1 attempt/30 seconds | user ID |
+
+For production, replace with Vercel KV or Upstash Redis to share state across serverless instances.
+
+### Security Headers
+
+All responses include via `next.config.ts`:
+- `Content-Security-Policy` — script/style/img/font/connect-src restricted
+- `Strict-Transport-Security` — 2-year max-age with preload
+- `X-Frame-Options: DENY` — no clickjacking
+- `X-Content-Type-Options: nosniff` — no MIME sniffing
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` — camera/microphone/geolocation disabled
+
+### IoT Hub Key Scoping
+
+See SAS Policy Scoping above. The `iothubowner` key should never be committed to env files — use `.env.local` with restricted policies in production.
+
+### Authentication
+
+- Supabase Auth rate limiting is configured in the Supabase dashboard (Authentication → Rate Limits), not in application code
+- Profiles table is user-scoped (`auth.uid() = id`) — contains PII
+- Fleet tables (motor_nodes, telemetry_live, diagnostics_logs, terminal_logs) are intentionally shared across authenticated operators
+- `telemetry_checkpoints` is service-role only (deny for authenticated users, bypassed by service role key)
+
+### Diagnostics
+
+- Device pings run in parallel via `Promise.all` with a 25-second hard timeout
+- Results inserted in a single bulk `insert()` call, not per-check
+- Rate limited to 1 run per 30 seconds per user
+
 ### Device Registration Flow
 
 1. User clicks "Register New Node" on `/nodes` → opens `RegisterDeviceDialog`

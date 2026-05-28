@@ -5,6 +5,7 @@ import {
   generateDeviceId,
   type RegisterDeviceResult,
 } from "@/lib/iot-hub/index";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +16,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: "Authentication required." } satisfies RegisterDeviceResult,
         { status: 401 },
+      );
+    }
+
+    const rl = checkRateLimit("register-device", user.id, 10, 60 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many device registrations. Try again later." } satisfies RegisterDeviceResult,
+        { status: 429 },
       );
     }
 

@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = checkRateLimit("signup", ip, 5, 60 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many signup attempts. Try again later." },
+      { status: 429 },
+    );
+  }
+
   let email = "";
   let password = "";
   let operatorId = "";

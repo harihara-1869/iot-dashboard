@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getDeviceStatus } from "@/lib/iot-hub";
+import { checkRateLimit } from "@/lib/rate-limit";
 import type { DiagnosticsCheckResult, DiagnosticsRunResult } from "@/lib/types";
 
 export async function POST() {
@@ -15,10 +16,17 @@ export async function POST() {
       );
     }
 
+    const rl = checkRateLimit("diagnostics-run", user.id, 1, 30 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, checks: [], summary: "", error: "Diagnostics already ran recently. Wait before repeating." } satisfies DiagnosticsRunResult,
+        { status: 429 },
+      );
+    }
+
     const checks: DiagnosticsCheckResult[] = [];
     const operatorId = user.user_metadata?.operator_id ?? user.email ?? "unknown";
 
-    // 1. Database check (with latency)
     const dbStart = Date.now();
     let dbResult: DiagnosticsCheckResult;
     try {
@@ -39,77 +47,52 @@ export async function POST() {
     }
     checks.push(dbResult);
 
-    // 2. Device ping via Azure IoT Hub (with per-device latency)
     const { data: nodes } = await supabase
       .from("motor_nodes")
       .select("id, name, iot_device_id")
       .not("iot_device_id", "is", null);
 
-    const devicePings: DiagnosticsCheckResult[] = [];
-
     if (nodes && nodes.length > 0) {
-      for (const node of nodes) {
-        const pingStart = Date.now();
-        let result: DiagnosticsCheckResult;
+      const DEVICE_TIMEOUT = 25_000;
 
+      const pingDevice = async (node: { id: string; name: string; iot_device_id: string }): Promise<DiagnosticsCheckResult> => {
+        const pingStart = Date.now();
         try {
-          const deviceInfo = await getDeviceStatus(node.iot_device_id!);
+          const deviceInfo = await getDeviceStatus(node.iot_device_id);
           const latency = Date.now() - pingStart;
 
           if (!deviceInfo) {
-            result = {
-              check_type: `Device: ${node.name}`,
-              result: "ERROR",
-              performance: `Not found (${latency}ms)`,
-              latency_ms: latency,
-              node_id: node.id,
-              node_name: node.name,
-            };
-          } else if (!deviceInfo.connected) {
-            result = {
-              check_type: `Device: ${node.name}`,
-              result: "WARNING",
-              performance: `Disconnected (${latency}ms)`,
-              latency_ms: latency,
-              node_id: node.id,
-              node_name: node.name,
-            };
-          } else {
-            result = {
-              check_type: `Device: ${node.name}`,
-              result: "SUCCESS",
-              performance: `${latency}ms`,
-              latency_ms: latency,
-              node_id: node.id,
-              node_name: node.name,
-            };
+            return { check_type: `Device: ${node.name}`, result: "ERROR", performance: `Not found (${latency}ms)`, latency_ms: latency, node_id: node.id, node_name: node.name };
           }
+          if (!deviceInfo.connected) {
+            return { check_type: `Device: ${node.name}`, result: "WARNING", performance: `Disconnected (${latency}ms)`, latency_ms: latency, node_id: node.id, node_name: node.name };
+          }
+          return { check_type: `Device: ${node.name}`, result: "SUCCESS", performance: `${latency}ms`, latency_ms: latency, node_id: node.id, node_name: node.name };
         } catch {
           const latency = Date.now() - pingStart;
-          result = {
-            check_type: `Device: ${node.name}`,
-            result: "ERROR",
-            performance: `Request failed (${latency}ms)`,
-            latency_ms: latency,
-            node_id: node.id,
-            node_name: node.name,
-          };
+          return { check_type: `Device: ${node.name}`, result: "ERROR", performance: `Request failed (${latency}ms)`, latency_ms: latency, node_id: node.id, node_name: node.name };
         }
+      };
 
-        devicePings.push(result);
-        checks.push(result);
-      }
+      const pings = nodes.map(pingDevice);
+
+      await Promise.race([
+        Promise.all(pings).then((results) => { checks.push(...results); }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Diagnostics timeout")), DEVICE_TIMEOUT)),
+      ]).catch((err) => {
+        console.error("Diagnostics device ping failed:", err instanceof Error ? err.message : String(err));
+      });
     }
 
-    // Insert all checks into diagnostics_logs
-    for (const check of checks) {
-      await supabase.from("diagnostics_logs").insert({
-        check_type: check.check_type,
-        result: check.result,
-        performance: check.performance,
-        operator: operatorId,
-        node_id: check.node_id ?? null,
-      });
+    const insertRows = checks.map((check) => ({
+      check_type: check.check_type,
+      result: check.result,
+      performance: check.performance,
+      operator: operatorId,
+      node_id: check.node_id ?? null,
+    }));
+    if (insertRows.length > 0) {
+      await supabase.from("diagnostics_logs").insert(insertRows);
     }
 
     const errorCount = checks.filter((c) => c.result === "ERROR").length;
