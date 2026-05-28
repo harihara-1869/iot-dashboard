@@ -48,6 +48,8 @@ next-env.d.ts
 *.user
 *.userosscache
 *.sln.docstates
+.codex
+.agents
 
 # playwright traces
 .playwright-mcp/
