@@ -78,9 +78,18 @@ The anon key is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, **not** `NEXT_PUBLIC_SUP
 
 Most pages are `"use client"` because they use React hooks. Dashboard and auth layout files have `export const dynamic = "force-dynamic"` — prevents static prerendering of pages that import `@supabase/ssr`.
 
-## Supabase RLS — Authenticated Only
+## Supabase RLS — Per-Table Policy Design
 
-All RLS policies require `auth.role() = 'authenticated'`. The publishable key alone cannot read or write data — a valid user session JWT must be present. The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
+| Table | Policy | Rationale |
+|---|---|---|
+| `profiles` | `auth.uid() = id` — user-scoped | Contains PII (email, operator_id). Each operator sees only their own row. |
+| `motor_nodes` | `auth.role() = 'authenticated'` — shared fleet | All operators manage a shared device inventory. No per-user ownership column. |
+| `telemetry_live` | `auth.role() = 'authenticated'` — shared operational | All operators see live sensor data from all devices. No per-user filtering needed. |
+| `diagnostics_logs` | `auth.role() = 'authenticated'` — shared operational | Diagnostic runs are fleet-wide, visible to all operators. |
+| `terminal_logs` | `auth.role() = 'authenticated'` — shared operational | Terminal commands and outputs are shared fleet data. |
+| `telemetry_checkpoints` | `deny_authenticated` — service role only | Internal cron state. Never exposed to client. Service role key bypasses RLS. |
+
+The publishable key alone cannot read or write data — a valid user session JWT must be present. The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
 
 ## Seed & Schema
 
@@ -129,6 +138,19 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 - API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Creates device in Azure IoT Hub + inserts into Supabase with defaults. Azure IoT Hub failures fail the entire request.
 - API route: `PATCH /api/devices/[id]/details` — requires auth. Updates `type`, `voltage`, `torque`, `max_rpm`, `ip_rating` on an existing node.
 - API route: `POST /api/diagnostics/run` — requires auth. Pings Azure IoT Hub per-node, checks Supabase DB, measures latencies, inserts results into `diagnostics_logs`
+
+### SAS Policy Scoping
+
+The `iothubowner` key has full Hub-level permissions. For production, create scoped shared access policies in the Azure Portal:
+
+| Policy | Permissions | Used by |
+|---|---|---|
+| `device-registration` | RegistryWrite | `POST /api/devices/register` |
+| `device-readonly` | RegistryRead, ServiceConnect | `POST /api/diagnostics/run` |
+
+- **Never log connection strings** — use `console.error` only for structured error types, not raw env vars
+- **Rotate keys quarterly** via the Azure Portal → IoT Hub → Security settings → Shared access policies
+- The cron telemetry endpoint uses a separate Event Hub-compatible connection string (`IOT_HUB_EVENTHUB_CONNECTION`) with Event Hub data-plane permissions, not the IoT Hub registry key
 
 ### Device Registration Flow
 

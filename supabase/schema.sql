@@ -103,7 +103,11 @@ CREATE POLICY "Authenticated access on motor_nodes" ON motor_nodes FOR ALL USING
 CREATE POLICY "Authenticated access on telemetry_live" ON telemetry_live FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on diagnostics_logs" ON diagnostics_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated access on terminal_logs" ON terminal_logs FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated access on profiles" ON profiles FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+-- Profiles: user-scoped — each operator can only see/modify their own profile
+DROP POLICY IF EXISTS "Authenticated access on profiles" ON profiles;
+CREATE POLICY "Own profile only" ON profiles
+  FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 DROP POLICY IF EXISTS "deny_authenticated" ON telemetry_checkpoints;
 CREATE POLICY "deny_authenticated" ON telemetry_checkpoints
