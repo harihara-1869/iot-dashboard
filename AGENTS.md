@@ -4,11 +4,36 @@
 
 ```bash
 pnpm dev          # Next.js 16 dev server (Turbopack)
+pnpm test         # Vitest + React Testing Library test suite
 pnpm build        # TypeScript check + production build (runs tsc internally)
 pnpm lint         # ESLint only — no typecheck
 ```
 
 Type checking happens inside `pnpm build`, not as a separate script.
+
+## Testing
+
+The project uses **Vitest** with **React Testing Library** and `jsdom`.
+
+| File | Purpose |
+|---|---|
+| `vitest.config.ts` | Vitest config, React plugin, `@/*` path alias, `jsdom` environment |
+| `vitest.setup.ts` | Testing Library cleanup, jest-dom matchers, default public env vars |
+| `tests/helpers/supabase.ts` | Reusable Supabase query-chain mocks and JSON request helper |
+| `tests/api-routes.test.ts` | API route tests with mocked Supabase, Azure IoT Hub, and Event Hubs |
+| `tests/proxy.test.ts` | `src/proxy.ts` route protection tests |
+| `tests/hooks.test.tsx` | `useAuth` and Supabase data hook tests |
+| `tests/components.test.tsx` | Key UI/component behavior tests |
+| `tests/lib.test.ts` | Pure and near-pure `src/lib` utility tests |
+
+### Test conventions
+
+- Use `pnpm test` for the full suite.
+- Mock external services in tests: Supabase browser/server clients, `azure-iothub`, and `@azure/event-hubs`.
+- For API route tests, import route modules after setting mocks/env vars; use `vi.resetModules()` when module-level state matters.
+- The cron telemetry route waits 8 seconds in production code. Tests should use fake timers (`vi.useFakeTimers()` + `vi.advanceTimersByTimeAsync(8000)`) instead of real sleeps.
+- `useSupabase.ts` creates a Supabase client at module load. Hook tests must set the mocked client before importing the hook module.
+- Do not hit live Supabase or Azure services from unit tests.
 
 ## Dev Server Troubleshooting
 
@@ -32,6 +57,24 @@ pnpm dev
 ```
 
 Also verify no empty `src/app/` subdirectories are committed — they can carry stale cache between builds.
+
+### Build says another build is already running
+
+If `pnpm build` exits with `Another next build process is already running` but no `next build`/Node process exists, a previous build likely left a stale generated lock.
+
+**Diagnosis:**
+```bash
+ps -ef | rg "next build|next/dist|pnpm build|node"
+ls .next/lock
+```
+
+**Fix:**
+```bash
+rm -f .next/lock
+pnpm build
+```
+
+If the build still wedges after clearing the lock, remove the generated `.next/` cache and retry. Do not delete empty source route directories unless the task explicitly allows application source cleanup.
 
 ## Tailwind v4 — No tailwind.config
 
@@ -255,6 +298,9 @@ See SAS Policy Scoping above. The `iothubowner` key should never be committed to
 7. For each event: parses JSON → looks up `motor_nodes.id` by `iot_device_id = device_id` → builds insert row with `partition_id` + `event_hub_offset`. Unknown devices are silently skipped.
 8. All events advance the checkpoint offset (even skipped ones) — burns through stale messages without re-processing them.
 9. Single `supabase.from("telemetry_live").upsert(rows, { onConflict: "partition_id, event_hub_offset", ignoreDuplicates: true })` — duplicate-safe
+10. Updates `motor_nodes.status` per motor based on telemetry payload status (`ok`/`Active` → Active, `warning`/`critical` → Maintenance, `idle` → Idle)
+11. Reaps stale nodes: Active → Idle if no telemetry in 1h; Active/Idle → Offline if no telemetry in 1d
+12. Returns `{ processed, skipped, errors }`
 
 ### Duplicate safety
 
@@ -311,3 +357,4 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 | 3 | Reduce session TTL | Supabase dashboard → Authentication → Settings → access token to 15 min, refresh token to 7 days |
 | 4 | Password change endpoint | Invalidate all existing refresh tokens on password change. API route + preferences UI |
 | 5 | Re-auth gating | Require password re-entry before device registration and diagnostics runs |
+| 6 | Remove legacy telemetry field support | `temperature_c`, `vibration_mms`, `current_a`, `voltage_v` still accepted in the ingestion route. Remove backward-compat once all devices send current schema. |

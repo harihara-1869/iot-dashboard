@@ -200,6 +200,61 @@ export async function GET(request: Request) {
       console.error("Telemetry sync: batch insert failed:", insertError.message);
       errors += rows.length;
       processed = 0;
+    } else {
+      const statusUpdates: { id: string; status: string }[] = [];
+      for (const row of rows) {
+        const s = row.status;
+        if (s === "ok" || s === "Active") {
+          statusUpdates.push({ id: row.node_id, status: "Active" });
+        } else if (s === "warning" || s === "critical") {
+          statusUpdates.push({ id: row.node_id, status: "Maintenance" });
+        } else if (s === "idle") {
+          statusUpdates.push({ id: row.node_id, status: "Idle" });
+        }
+      }
+
+      const deduped = new Map(statusUpdates.map((u) => [u.id, u.status]));
+      for (const [id, status] of deduped) {
+        await supabase.from("motor_nodes").update({ status }).eq("id", id);
+      }
+    }
+  }
+
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: staleCandidates } = await supabase
+    .from("motor_nodes")
+    .select("id")
+    .in("status", ["Active", "Idle"]);
+
+  if (staleCandidates?.length) {
+    const allIds = staleCandidates.map((n: { id: string }) => n.id);
+
+    const { data: recent } = await supabase
+      .from("telemetry_live")
+      .select("node_id")
+      .in("node_id", allIds)
+      .gte("timestamp", oneHourAgo);
+
+    const recentSet = new Set((recent ?? []).map((r: { node_id: string }) => r.node_id));
+    const idleIds = allIds.filter((id) => !recentSet.has(id));
+
+    if (idleIds.length > 0) {
+      await supabase.from("motor_nodes").update({ status: "Idle" }).in("id", idleIds);
+    }
+
+    const { data: recentDay } = await supabase
+      .from("telemetry_live")
+      .select("node_id")
+      .in("node_id", allIds)
+      .gte("timestamp", oneDayAgo);
+
+    const daySet = new Set((recentDay ?? []).map((r: { node_id: string }) => r.node_id));
+    const offlineIds = allIds.filter((id) => !daySet.has(id));
+
+    if (offlineIds.length > 0) {
+      await supabase.from("motor_nodes").update({ status: "Offline" }).in("id", offlineIds);
     }
   }
 

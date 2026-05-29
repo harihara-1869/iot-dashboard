@@ -22,11 +22,15 @@ export function useMotorNodes() {
 
   useEffect(() => {
     fetchNodes();
-    const channel = supabase
-      .channel("motor_nodes_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "motor_nodes" }, fetchNodes)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    try {
+      const channel = supabase
+        .channel("motor_nodes_changes")
+        .on("postgres_changes", { event: "*", schema: "public", table: "motor_nodes" }, fetchNodes)
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    } catch {
+      // Realtime subscription unavailable (SSR hydrogen or WebSocket not ready)
+    }
   }, [fetchNodes]);
 
   return { nodes, loading, refetch: fetchNodes };
