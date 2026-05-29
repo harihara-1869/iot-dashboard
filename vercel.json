@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/telemetry-sync",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }

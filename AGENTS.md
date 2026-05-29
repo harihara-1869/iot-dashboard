@@ -263,7 +263,7 @@ See SAS Policy Scoping above. The `iothubowner` key should never be committed to
 
 - **Cron route**: `GET /api/cron/telemetry-sync` — runs every minute via Vercel Cron (`vercel.json`)
 - **`@azure/event-hubs`** is server-only (same restriction as `azure-iothub`). Do not import in client components.
-- **`vercel.json`** controls the cron schedule (`* * * * *`).
+- **`vercel.json`** controls the cron schedule (`* * * * *` — every minute on Pro/Enterprise plans; Hobby plans are limited to once per day, use `0 * * * *` as a fallback).
 - **Schedule**: 1-minute polling interval, events received in 8-second windows, ~10s max message delay.
 - The route uses `SUPABASE_SERVICE_ROLE_KEY` (service role) to bypass RLS — no user session required.
 
