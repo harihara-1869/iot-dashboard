@@ -140,13 +140,13 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-8 pt-8 border-t border-outline-variant flex flex-col gap-4">
-              <a
+              <Link
+                href="/forgot-password"
                 className="font-sans text-[14px] leading-5 text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2"
-                href="#"
               >
                 <span className="material-symbols-outlined text-[18px]">lock_reset</span>
                 Forgot Password
-              </a>
+              </Link>
               <Link
                 href="/signup"
                 className="font-sans text-[14px] leading-5 text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2"

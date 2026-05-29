@@ -26,6 +26,7 @@ export function createQueryBuilder(handlers: TableHandlers = {}) {
   builder.eq = vi.fn(() => chain());
   builder.not = vi.fn(() => chain());
   builder.in = vi.fn(() => chain());
+  builder.gte = vi.fn(() => chain());
   builder.order = vi.fn(() => chain());
   builder.limit = vi.fn(() => chain());
   builder.range = vi.fn(() => chain());

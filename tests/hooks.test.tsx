@@ -50,6 +50,34 @@ describe("Supabase hooks", () => {
     expect(unsubscribe).toHaveBeenCalled();
   });
 
+  it("useAuth resetPassword calls resetPasswordForEmail and returns errors", async () => {
+    const unsubscribe = vi.fn();
+    mocks.client = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe } } })),
+        resetPasswordForEmail: vi
+          .fn()
+          .mockResolvedValueOnce({ error: null })
+          .mockResolvedValueOnce({ error: { message: "Rate limit exceeded" } }),
+      },
+    };
+    const { useAuth } = await import("@/lib/hooks/useAuth");
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.resetPassword("operator@example.com")).resolves.toEqual({ error: null });
+    });
+    expect(mocks.client.auth.resetPasswordForEmail).toHaveBeenCalledWith("operator@example.com", {
+      redirectTo: expect.stringContaining("/auth/confirm?next=/update-password"),
+    });
+
+    await act(async () => {
+      await expect(result.current.resetPassword("bad@example.com")).resolves.toEqual({ error: "Rate limit exceeded" });
+    });
+  });
+
   it("useAuth handles signIn success, signIn errors, and signOut", async () => {
     mocks.client = {
       auth: {

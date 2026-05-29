@@ -23,13 +23,15 @@ A precision industrial motor monitoring and control dashboard for IoT-enabled mo
 src/
 ├── app/
 │   ├── layout.tsx                         # Root layout (fonts, globals)
-│   ├── page.tsx                           # Redirect / → /dashboard
+│   ├── page.tsx                           # Root page
 │   ├── (auth)/
 │   │   ├── layout.tsx                     # Login shell (header + footer)
 │   │   ├── login/page.tsx                 # Email + Password login form
-│   │   └── signup/page.tsx                # New operator registration
+│   │   ├── signup/page.tsx                # New operator registration
+│   │   ├── forgot-password/page.tsx       # Password reset request form
+│   │   └── update-password/page.tsx       # New password entry after reset
 │   ├── (dashboard)/
-│   │   ├── layout.tsx                     # Sidebar + Topbar + ActivityMonitor shell
+│   │   ├── layout.tsx                     # Sidebar + Topbar shell
 │   │   ├── dashboard/page.tsx             # KPI cards + Device List + Fluid Status
 │   │   ├── nodes/page.tsx                 # Filter bar + Device cards + System Alert
 │   │   ├── health/page.tsx                # Status bar + Diagnostics Grid + History table
@@ -42,8 +44,8 @@ src/
 │   ├── privacy/page.tsx                   # Privacy policy (public)
 │   └── api/
 │       ├── auth/
-│       │   ├── confirm/route.ts             # GET — email confirmation (verifyOtp)
-│       │   └── signup/route.ts              # POST — create user via Supabase Auth
+│   │   ├── confirm/route.ts             # GET — OTP verification + PKCE code exchange
+│   │   └── signup/route.ts              # POST — create user via Supabase Auth
 │       ├── cron/
 │       │   └── telemetry-sync/route.ts      # GET — Vercel Cron telemetry ingestion
 │       ├── devices/register/route.ts        # POST — authenticated device registration
@@ -70,9 +72,11 @@ src/
 ## Routes
 
 | Route | Screen | Auth |
-|---|---|---|
+|---|---|---|---|
 | `/login` | Email + Password login | No |
 | `/signup` | New operator registration | No |
+| `/forgot-password` | Password reset request | No |
+| `/update-password` | Set new password after reset link | No (recovery session) |
 | `/dashboard` | KPI Overview (Home) | Yes |
 | `/nodes` | Nodes Inventory + Fleet Status | Yes |
 | `/health` | System Health Diagnostics + History | Yes |
@@ -82,6 +86,7 @@ src/
 | `/help` | Project help + architecture overview | No |
 | `/contact` | RVCE contact information | No |
 | `/privacy` | Privacy policy | No |
+| `GET /auth/confirm` | OTP verification (signup) + PKCE code exchange (reset) | No |
 | `POST /api/auth/signup` | Create user via Supabase Auth | No |
 | `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes |
 | `POST /api/diagnostics/run` | Run system diagnostics (Azure + DB + server) | Yes |
@@ -194,10 +199,22 @@ See `.env.local.example` for the template.
 
 ```bash
 pnpm dev                           # Start development server (Turbopack)
+pnpm test                          # Run Vitest test suite
 pnpm build                         # Production build
 pnpm start                         # Start production server
 pnpm lint                          # Run ESLint
 ```
+
+## Testing
+
+The project uses **Vitest** with **React Testing Library** and `jsdom`. Tests cover API routes (signup, device registration, diagnostics, telemetry sync), proxy route protection, Supabase hooks (`useAuth`, `useSupabase`), UI components, and utility functions.
+
+```bash
+pnpm test                          # Run all tests
+pnpm vitest run tests/hooks.test.tsx     # Run a specific test file
+```
+
+Mock external services (Supabase, Azure IoT Hub, Event Hubs) in tests — do not hit live services from unit tests. See `tests/helpers/supabase.ts` for reusable mock builders.
 
 ## Seeding
 
@@ -210,10 +227,11 @@ npx tsx supabase/seed.ts           # Seed motor nodes + telemetry (8 nodes, 24h 
 | Table | Purpose |
 |---|---|
 | `motor_nodes` | Device inventory — name, type, location, specs, status |
-| `telemetry_live` | Real-time sensor data (Realtime-enabled) — RPM, temp, vibration, current |
+| `telemetry_live` | Real-time sensor data (Realtime-enabled) — RPM, temp, vibration, current, status |
 | `diagnostics_logs` | System health check history |
 | `terminal_logs` | Command history per device |
 | `profiles` | Extended user data — operator_id, email, linked to `auth.users` via FK |
+| `telemetry_checkpoints` | Cron checkpoint offsets per Event Hub partition |
 
 ## Authentication
 
@@ -223,18 +241,28 @@ Authentication uses **Supabase Auth** (email + password) with `@supabase/ssr` fo
 
 - **Login**: `supabase.auth.signInWithPassword({ email, password })` in the `useAuth` hook
 - **Logout**: `supabase.auth.signOut()` — clears Supabase session cookies
+- **Password reset**: `supabase.auth.resetPasswordForEmail()` in `useAuth` hook → `/forgot-password` page. Email link uses PKCE `code` flow → `/auth/confirm` exchanges it via `exchangeCodeForSession()` → redirects to `/update-password` for new password via `updateUser()`
 - **Session cookie**: `__Host-sb-auth-token` managed by `@supabase/ssr`
 - **User data**: `operator_id` stored in `user_metadata.operator_id` during signup; auto-populated to `public.profiles` via `handle_new_user()` trigger
 - **Signup gate**: Controlled by Supabase dashboard → Authentication → Settings → "Allow new users to sign up" toggle
-- **Email confirmation**: Configurable in Supabase dashboard; `/auth/confirm` route handles OTP redirects
+- **Email confirmation**: Configurable in Supabase dashboard; `/auth/confirm` route handles both `verifyOtp` (token_hash) and `exchangeCodeForSession` (PKCE code) flows
 
 ### Route Protection
 
-`src/proxy.ts` (Next.js 16 convention) protects `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor`, `/preferences` — redirects to `/login` if unauthenticated. Authenticated users on `/login` are redirected to `/dashboard`.
+`src/proxy.ts` (Next.js 16 convention) protects `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor`, `/preferences` — redirects to `/login` if unauthenticated. Authenticated users on `/login` are redirected to `/dashboard`. Root `/` redirects to `/dashboard`.
 
 ### RLS (Row Level Security)
 
-All tables require `auth.role() = 'authenticated'`. The anon/publishable key alone cannot read or write data — a valid user session JWT must be present. The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
+| Table | Policy |
+|---|---|
+| `profiles` | `auth.uid() = id` — user-scoped (PII) |
+| `motor_nodes` | `auth.role() = 'authenticated'` — shared fleet |
+| `telemetry_live` | `auth.role() = 'authenticated'` — shared operational |
+| `diagnostics_logs` | `auth.role() = 'authenticated'` — shared operational |
+| `terminal_logs` | `auth.role() = 'authenticated'` — shared operational |
+| `telemetry_checkpoints` | `deny_authenticated` — service role only |
+
+The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
 
 ### Inactivity Auto-Logout (30 min) — Planned
 
@@ -352,8 +380,9 @@ Use the [Azure IoT Hub MQTT](https://learn.microsoft.com/en-us/azure/iot-hub/iot
 2. Publishes telemetry JSON over MQTT to Azure IoT Hub every 5 seconds
 3. Vercel Cron hits `GET /api/cron/telemetry-sync` every minute → `EventHubConsumerClient` drains events via the IoT Hub built-in Event Hub-compatible endpoint
 4. Route bulk-inserts rows into `telemetry_live` using the Supabase service role key (bypasses RLS)
-5. Supabase Realtime pushes new rows to the dashboard UI
-6. Dashboard KPI cards, charts, and device status badges update live
+5. Route updates `motor_nodes.status` per motor from telemetry payload status and degrades stale nodes (Active → Idle after 1h, Idle → Offline after 1d)
+6. Supabase Realtime pushes new rows to the dashboard UI
+7. Dashboard KPI cards, charts, and device status badges update live
 
 ## License
 

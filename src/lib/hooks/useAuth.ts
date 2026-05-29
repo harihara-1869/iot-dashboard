@@ -62,5 +62,14 @@ export function useAuth() {
     setUser(null);
   }, []);
 
-  return { user, loading, signIn, signOut };
+  const resetPassword = useCallback(async (email: string) => {
+    const supabase = createClient();
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/auth/confirm?next=/update-password`,
+    });
+    return { error: error?.message ?? null };
+  }, []);
+
+  return { user, loading, signIn, signOut, resetPassword };
 }
