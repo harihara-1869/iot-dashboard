@@ -13,6 +13,7 @@
     "@azure/event-hubs": "^6.0.4",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "@vercel/analytics": "^2.0.1",
     "azure-iothub": "^1.16.6",
     "material-symbols": "^0.44.8",
     "next": "16.2.6",
