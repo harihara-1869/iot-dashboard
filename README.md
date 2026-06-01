@@ -72,7 +72,7 @@ src/
 ## Routes
 
 | Route | Screen | Auth |
-|---|---|---|---|
+|---|---|---|
 | `/login` | Email + Password login | No |
 | `/signup` | New operator registration | No |
 | `/forgot-password` | Password reset request | No |
@@ -81,15 +81,16 @@ src/
 | `/nodes` | Nodes Inventory + Fleet Status | Yes |
 | `/health` | System Health Diagnostics + History | Yes |
 | `/terminal` | System Terminal | Yes |
-| `/preferences` | Account Preferences | Yes |
+| `/preferences` | Account Preferences + Change Password | Yes |
 | `/motor/[id]` | Motor Detail — Telemetry + Charts | Yes |
 | `/help` | Project help + architecture overview | No |
 | `/contact` | RVCE contact information | No |
 | `/privacy` | Privacy policy | No |
 | `GET /auth/confirm` | OTP verification (signup) + PKCE code exchange (reset) | No |
 | `POST /api/auth/signup` | Create user via Supabase Auth | No |
-| `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes |
-| `POST /api/diagnostics/run` | Run system diagnostics (Azure + DB + server) | Yes |
+| `PATCH /api/auth/password` | Change password (invalidates other sessions) | Yes |
+| `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes (re-auth req) |
+| `POST /api/diagnostics/run` | Run system diagnostics (Azure + DB + server) | Yes (re-auth req) |
 | `GET /api/cron/telemetry-sync` | Vercel Cron — ingest telemetry from IoT Hub via Event Hubs | No (CRON_SECRET) |
 
 ## Quick Start
@@ -184,13 +185,14 @@ If email confirmation is enabled, check your inbox. Otherwise log in directly at
 ## Required Environment Variables
 
 | Variable | Description |
-|---|---|---|
+|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (for seed + telemetry cron) |
 | `AZURE_IOT_HUB_HOST` | Azure IoT Hub hostname |
 | `AZURE_IOT_HUB_CONNECTION_STRING` | IoT Hub owner connection string |
 | `IOT_HUB_EVENTHUB_CONNECTION` | IoT Hub → Built-in endpoints → Event Hub-compatible connection string |
+| `CRON_SECRET` | Random string — authenticates Vercel Cron calls |
 | `CRON_SECRET` | Random string — authenticates Vercel Cron calls |
 
 See `.env.local.example` for the template.
