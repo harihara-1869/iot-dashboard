@@ -195,3 +195,62 @@ describe("Supabase hooks", () => {
     ]);
   });
 });
+
+describe("useReauth", () => {
+  let reauthModule: typeof import("@/lib/hooks/useReauth");
+
+  beforeEach(async () => {
+    vi.resetModules();
+  });
+
+  it("isReauthed returns false initially and after clearReauth", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    expect(reauthModule.isReauthed()).toBe(false);
+  });
+
+  it("reauth success sets isReauthed true", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    const { error } = await reauthModule.reauth("op@example.com", "password");
+    expect(error).toBeNull();
+    expect(reauthModule.isReauthed()).toBe(true);
+  });
+
+  it("reauth failure returns error and does not set authed", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: { message: "Invalid login" } }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    const { error } = await reauthModule.reauth("op@example.com", "wrong");
+    expect(error).toBe("Invalid login");
+    expect(reauthModule.isReauthed()).toBe(false);
+  });
+
+  it("clearReauth resets isReauthed", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    await reauthModule.reauth("op@example.com", "password");
+    expect(reauthModule.isReauthed()).toBe(true);
+    reauthModule.clearReauth();
+    expect(reauthModule.isReauthed()).toBe(false);
+  });
+});

@@ -352,8 +352,6 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 
 | # | Task | Notes |
 |---|------|-------|
-| 1 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |
+| 1 | Account preferences | Linked devices view, session activity (currently placeholder UI, password change is implemented) |
 | 2 | Reduce session TTL | Supabase dashboard → Authentication → Settings → access token to 15 min, refresh token to 7 days |
-| 3 | Password change endpoint | Invalidate all existing refresh tokens on password change. API route + preferences UI |
-| 4 | Re-auth gating | Require password re-entry before device registration and diagnostics runs |
-| 5 | Remove legacy telemetry field support | `temperature_c`, `vibration_mms`, `current_a`, `voltage_v` still accepted in the ingestion route. Remove backward-compat once all devices send current schema. |
+| 3 | Remove legacy telemetry field support | `temperature_c`, `vibration_mms`, `current_a`, `voltage_v` still accepted in the ingestion route. Remove backward-compat once all devices send current schema. |

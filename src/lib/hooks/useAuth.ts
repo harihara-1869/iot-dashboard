@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { clearReauth } from "@/lib/hooks/useReauth";
 import type { AuthUser } from "@/lib/types";
 
 function userToAuthUser(user: {
@@ -59,6 +60,7 @@ export function useAuth() {
   const signOut = useCallback(async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    clearReauth();
     setUser(null);
   }, []);
 

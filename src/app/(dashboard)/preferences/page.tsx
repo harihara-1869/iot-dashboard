@@ -1,9 +1,55 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { clearReauth } from "@/lib/hooks/useReauth";
 
 export default function PreferencesPage() {
   const { user } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess("");
+
+    if (newPassword.length < 8) {
+      setPwError("New password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError("Passwords do not match.");
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        clearReauth();
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPwSuccess("Password updated. All other sessions have been signed out.");
+      } else {
+        setPwError(data.error ?? "Password change failed.");
+      }
+    } catch {
+      setPwError("Network error. Please try again.");
+    } finally {
+      setPwLoading(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-[24px] max-w-3xl">
@@ -35,6 +81,69 @@ export default function PreferencesPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      <section className="bg-surface border border-outline-variant rounded-lg p-6">
+        <h3 className="font-sans text-[16px] leading-6 font-semibold text-on-surface mb-4">
+          Change Password
+        </h3>
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div>
+            <label className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold uppercase text-on-surface-variant" htmlFor="current-password">
+              Current Password
+            </label>
+            <input
+              id="current-password"
+              type="password"
+              className="w-full h-12 bg-surface border border-outline px-4 font-mono text-[14px] leading-5 font-medium focus:border-primary focus:ring-0 rounded-none transition-all mt-1"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold uppercase text-on-surface-variant" htmlFor="new-password">
+              New Password
+            </label>
+            <input
+              id="new-password"
+              type="password"
+              className="w-full h-12 bg-surface border border-outline px-4 font-mono text-[14px] leading-5 font-medium focus:border-primary focus:ring-0 rounded-none transition-all mt-1"
+              placeholder="Min. 8 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold uppercase text-on-surface-variant" htmlFor="confirm-password">
+              Confirm Password
+            </label>
+            <input
+              id="confirm-password"
+              type="password"
+              className="w-full h-12 bg-surface border border-outline px-4 font-mono text-[14px] leading-5 font-medium focus:border-primary focus:ring-0 rounded-none transition-all mt-1"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {pwError && (
+            <p className="text-error font-mono text-[12px] leading-4 tracking-[0.05em] font-bold">{pwError}</p>
+          )}
+          {pwSuccess && (
+            <p className="text-secondary font-mono text-[12px] leading-4 tracking-[0.05em] font-bold">{pwSuccess}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={pwLoading}
+            className="h-12 bg-primary text-on-primary font-mono text-[12px] leading-4 tracking-[0.05em] font-bold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 px-6"
+          >
+            {pwLoading ? "UPDATING..." : "UPDATE PASSWORD"}
+          </button>
+        </form>
       </section>
 
       <section className="bg-surface border border-outline-variant rounded-lg p-6">

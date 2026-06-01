@@ -359,4 +359,64 @@ describe("API routes", () => {
 
     await expect(response.json()).resolves.toMatchObject({ processed: 0, skipped: 0, errors: 1 });
   });
+
+  describe("password change", () => {
+    it("requires auth", async () => {
+      mocks.serverSupabase = createSupabaseMock({}, null);
+      const { PATCH } = await import("@/app/api/auth/password/route");
+      const res = await PATCH(jsonRequest("https://app.local/api/auth/password", {
+        currentPassword: "old",
+        newPassword: "newpassword123",
+      }, { method: "PATCH" }));
+      expect(res.status).toBe(401);
+    });
+
+    it("validates inputs", async () => {
+      const { PATCH } = await import("@/app/api/auth/password/route");
+      const empty = await PATCH(jsonRequest("https://app.local/api/auth/password", {}, { method: "PATCH" }));
+      expect(empty.status).toBe(400);
+      await expect(empty.json()).resolves.toMatchObject({ error: "Both current and new passwords are required." });
+
+      const short = await PATCH(jsonRequest("https://app.local/api/auth/password", {
+        currentPassword: "old",
+        newPassword: "short",
+      }, { method: "PATCH" }));
+      expect(short.status).toBe(400);
+      await expect(short.json()).resolves.toMatchObject({ error: "New password must be at least 8 characters." });
+    });
+
+    it("rejects incorrect current password", async () => {
+      mocks.serverSupabase = createSupabaseMock();
+      (mocks.serverSupabase as ReturnType<typeof createSupabaseMock>).auth.signInWithPassword = vi
+        .fn()
+        .mockResolvedValue({ error: { message: "Invalid login credentials" } });
+      const { PATCH } = await import("@/app/api/auth/password/route");
+      const res = await PATCH(jsonRequest("https://app.local/api/auth/password", {
+        currentPassword: "wrong",
+        newPassword: "newpassword123",
+      }, { method: "PATCH" }));
+      expect(res.status).toBe(400);
+      await expect(res.json()).resolves.toMatchObject({ error: "Current password is incorrect." });
+    });
+
+    it("updates password and signs out other sessions", async () => {
+      const signOut = vi.fn().mockResolvedValue({ error: null });
+      mocks.serverSupabase = createSupabaseMock();
+      (mocks.serverSupabase as ReturnType<typeof createSupabaseMock>).auth.signInWithPassword = vi
+        .fn()
+        .mockResolvedValue({ error: null });
+      (mocks.serverSupabase as ReturnType<typeof createSupabaseMock>).auth.updateUser = vi
+        .fn()
+        .mockResolvedValue({ error: null });
+      (mocks.serverSupabase as ReturnType<typeof createSupabaseMock>).auth.signOut = signOut;
+      const { PATCH } = await import("@/app/api/auth/password/route");
+      const res = await PATCH(jsonRequest("https://app.local/api/auth/password", {
+        currentPassword: "old",
+        newPassword: "newpassword123",
+      }, { method: "PATCH" }));
+      expect(res.status).toBe(200);
+      await expect(res.json()).resolves.toEqual({ success: true });
+      expect(signOut).toHaveBeenCalledWith({ scope: "others" });
+    });
+  });
 });

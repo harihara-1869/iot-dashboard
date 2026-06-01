@@ -26,10 +26,15 @@ export function useMotorNodes() {
       const channel = supabase
         .channel("motor_nodes_changes")
         .on("postgres_changes", { event: "*", schema: "public", table: "motor_nodes" }, fetchNodes)
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.error("Realtime subscription failed:", err?.message ?? status);
+            supabase.removeChannel(channel);
+          }
+        });
       return () => { supabase.removeChannel(channel); };
     } catch {
-      // Realtime subscription unavailable (SSR hydrogen or WebSocket not ready)
+      // Realtime subscription unavailable (SSR hydration or WebSocket not ready)
     }
   }, [fetchNodes]);
 
