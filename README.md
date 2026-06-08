@@ -1,6 +1,6 @@
 # Kinetic Industrial — Motor Control Dashboard
 
-A precision industrial motor monitoring and control dashboard for IoT-enabled motor systems. Provides real-time telemetry visualization, device inventory management, system health diagnostics, terminal command access, and automated device provisioning via Azure IoT Hub.
+Precision industrial motor monitoring and control dashboard for IoT-enabled motor systems. Real-time telemetry visualization, device inventory management, system health diagnostics, terminal command access, and automated device provisioning via Azure IoT Hub.
 
 ## Tech Stack
 
@@ -14,59 +14,66 @@ A precision industrial motor monitoring and control dashboard for IoT-enabled mo
 | Icons | [Material Symbols](https://fonts.google.com/icons) |
 | Database | [Supabase](https://supabase.com) (PostgreSQL + Realtime) |
 | Auth | Supabase Auth + @supabase/ssr |
-| IoT | [Azure IoT Hub](https://azure.microsoft.com/products/iot-hub) (Device Identity Registry + MQTT) |
+| IoT | [Azure IoT Hub](https://azure.microsoft.com/products/iot-hub) (Device Registry + MQTT + Event Hubs) |
+| Testing | Vitest + React Testing Library + jsdom |
 | Package Manager | pnpm |
 
 ## File Structure
 
 ```
 src/
+├── proxy.ts                              # Route protection middleware (Supabase SSR)
+├── instrumentation.ts                    # DB table verification at server startup
 ├── app/
-│   ├── layout.tsx                         # Root layout (fonts, globals)
-│   ├── page.tsx                           # Root page
+│   ├── layout.tsx                        # Root layout (fonts, Metadata, Vercel Analytics)
+│   ├── loading.tsx                       # Root loading spinner (standalone pages)
+│   ├── page.tsx                          # Root page (redirects to /dashboard)
+│   ├── globals.css                       # Design tokens (@theme), animations, utilities
 │   ├── (auth)/
-│   │   ├── layout.tsx                     # Login shell (header + footer)
-│   │   ├── login/page.tsx                 # Email + Password login form
-│   │   ├── signup/page.tsx                # New operator registration
-│   │   ├── forgot-password/page.tsx       # Password reset request form
-│   │   └── update-password/page.tsx       # New password entry after reset
+│   │   ├── layout.tsx                    # Auth shell (LoginHeader + LoginFooter)
+│   │   ├── loading.tsx                   # Auth page loading spinner
+│   │   ├── login/page.tsx                # Email + Password login form
+│   │   ├── signup/page.tsx               # New operator registration
+│   │   ├── forgot-password/page.tsx      # Password reset request form
+│   │   └── update-password/page.tsx      # New password entry after reset
 │   ├── (dashboard)/
-│   │   ├── layout.tsx                     # Sidebar + Topbar shell
-│   │   ├── dashboard/page.tsx             # KPI cards + Device List + Fluid Status
-│   │   ├── nodes/page.tsx                 # Filter bar + Device cards + System Alert
-│   │   ├── health/page.tsx                # Status bar + Diagnostics Grid + History table
-│   │   ├── terminal/page.tsx              # Terminal + Metrics sidebar + Status bar
-│   │   └── preferences/page.tsx           # Account profile + display settings
-│   ├── motor/
-│   │   └── [id]/page.tsx                  # Motor viz + Telemetry charts (Recharts)
-│   ├── help/page.tsx                      # Project overview + research background (public)
-│   ├── contact/page.tsx                   # RVCE contact info (public)
-│   ├── privacy/page.tsx                   # Privacy policy (public)
+│   │   ├── layout.tsx                    # Sidebar + Topbar shell
+│   │   ├── loading.tsx                   # Dashboard page loading spinner
+│   │   ├── dashboard/page.tsx            # KPI cards + Fleet Health + Device list
+│   │   ├── nodes/page.tsx                # Device cards + Filter bar + Register dialog
+│   │   ├── health/page.tsx               # Diagnostics Grid + History table
+│   │   ├── terminal/page.tsx             # Terminal window + Metrics sidebar
+│   │   └── preferences/page.tsx          # Account profile + Change password
+│   ├── motor/[id]/page.tsx               # Motor viz + Telemetry charts (Recharts)
+│   ├── help/page.tsx                     # Project overview (public)
+│   ├── contact/page.tsx                  # Contact info (public)
+│   ├── privacy/page.tsx                  # Privacy policy (public)
+│   ├── auth/confirm/route.ts             # GET — OTP verification + PKCE code exchange
 │   └── api/
 │       ├── auth/
-│   │   ├── confirm/route.ts             # GET — OTP verification + PKCE code exchange
-│   │   └── signup/route.ts              # POST — create user via Supabase Auth
-│       ├── cron/
-│       │   └── telemetry-sync/route.ts      # GET — Vercel Cron telemetry ingestion
-│       ├── devices/register/route.ts        # POST — authenticated device registration
-│       ├── devices/[id]/details/route.ts    # PATCH — update motor specs
-│       └── diagnostics/run/route.ts         # POST — system-wide health check (Azure + DB)
+│       │   ├── signup/route.ts           # POST — create user via Supabase Auth
+│       │   └── password/route.ts         # PATCH — change password + re-auth
+│       ├── devices/
+│       │   ├── register/route.ts         # POST — register device (Azure IoT Hub + Supabase)
+│       │   └── [id]/details/route.ts     # PATCH — update motor specs
+│       ├── diagnostics/run/route.ts      # POST — system-wide health check (Azure + DB)
+│       └── cron/telemetry-sync/route.ts  # GET — Vercel Cron telemetry ingestion
 ├── components/
 │   ├── layout/       # Sidebar, Topbar, StatusBar, LoginHeader, LoginFooter
-│   ├── ui/           # StatusChip, KpiCard, DataField, Button, GlassPanel, FluidStatus
-│   ├── nodes/        # DeviceCard, FilterBar, RegisterDeviceDialog
+│   ├── ui/           # Button, GlassPanel, KpiCard, DataField, StatusChip, FluidStatus
+│   ├── nodes/        # DeviceCard, FilterBar, RegisterDeviceDialog, DeviceDetailsForm, CalibrateDialog
 │   ├── health/       # DiagnosticsGrid, HistoryTable
 │   ├── terminal/     # TerminalWindow, MetricsSidebar
 │   ├── telemetry/    # MotorVisualization, TelemetryCharts (Recharts)
-│   └── auth/         # ActivityMonitor (planned — not yet implemented)
-├── lib/
-│   ├── supabase/     # Browser client (createBrowserClient) + Server client (createServerClient)
-│   ├── iot-hub/      # Azure IoT Hub device identity registry
-│   ├── hooks/        # useAuth, useSupabase (motor nodes, telemetry, diagnostics)
-│   └── types/        # MotorNode, TelemetryPoint, DiagnosticsLog, etc.
-├── proxy.ts           # Route protection (Supabase SSR, was middleware.ts)
-├── instrumentation.ts # DB table verification at startup
-└── app/globals.css    # Design tokens (exact Figma colors, animations, utilities)
+│   └── auth/         # ReauthDialog (password re-entry gate for sensitive operations)
+└── lib/
+    ├── supabase/     # Browser client + Server client
+    ├── iot-hub/      # Azure IoT Hub device identity registry wrapper
+    ├── hooks/        # useAuth, useReauth, useSupabase (nodes, telemetry, diagnostics, terminal)
+    ├── types/        # MotorNode, TelemetryPoint, DiagnosticsLog, etc.
+    ├── node-health.ts # getNodeHealth() — centralized health status computation
+    ├── rate-limit.ts # In-memory rate limiter
+    └── images.ts     # Static image paths + per-node image mapping
 ```
 
 ## Routes
@@ -76,22 +83,23 @@ src/
 | `/login` | Email + Password login | No |
 | `/signup` | New operator registration | No |
 | `/forgot-password` | Password reset request | No |
-| `/update-password` | Set new password after reset link | No (recovery session) |
+| `/update-password` | Set new password after reset link | No |
 | `/dashboard` | KPI Overview (Home) | Yes |
 | `/nodes` | Nodes Inventory + Fleet Status | Yes |
 | `/health` | System Health Diagnostics + History | Yes |
 | `/terminal` | System Terminal | Yes |
 | `/preferences` | Account Preferences + Change Password | Yes |
 | `/motor/[id]` | Motor Detail — Telemetry + Charts | Yes |
-| `/help` | Project help + architecture overview | No |
-| `/contact` | RVCE contact information | No |
+| `/help` | Project overview | No |
+| `/contact` | Contact information | No |
 | `/privacy` | Privacy policy | No |
 | `GET /auth/confirm` | OTP verification (signup) + PKCE code exchange (reset) | No |
 | `POST /api/auth/signup` | Create user via Supabase Auth | No |
 | `PATCH /api/auth/password` | Change password (invalidates other sessions) | Yes |
-| `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes (re-auth req) |
-| `POST /api/diagnostics/run` | Run system diagnostics (Azure + DB + server) | Yes (re-auth req) |
-| `GET /api/cron/telemetry-sync` | Vercel Cron — ingest telemetry from IoT Hub via Event Hubs | No (CRON_SECRET) |
+| `POST /api/devices/register` | Register New Device (Supabase + Azure IoT Hub) | Yes |
+| `PATCH /api/devices/[id]/details` | Update device specs (type, voltage, torque, RPM, current) | Yes |
+| `POST /api/diagnostics/run` | Run system diagnostics (Azure + DB + server) | Yes |
+| `GET /api/cron/telemetry-sync` | Vercel Cron — ingest telemetry from Event Hubs | No (CRON_SECRET) |
 
 ## Quick Start
 
@@ -99,7 +107,6 @@ src/
 
 - [Node.js](https://nodejs.org) 18+
 - [pnpm](https://pnpm.io) (`npm install -g pnpm`)
-- A [GitHub](https://github.com) account (for Supabase auth)
 
 ### 2. Clone and Install
 
@@ -109,201 +116,182 @@ cd dashboard
 pnpm install
 ```
 
-### 3. Supabase Setup (Free Tier)
+### 3. Environment Variables
 
-1. Go to [supabase.com](https://supabase.com) and sign in with GitHub
-2. Click **New project** → choose an organization or create one
-3. Set project name (e.g. `kinetic-industrial`), a secure database password, and region closest to you
-4. Wait for the database to provision (~2 minutes)
-5. Go to **Project Settings → API**
-6. Copy the **Project URL** and **anon/public key**
-7. Paste them into `.env.local`:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOi...
-   ```
-8. Go to **SQL Editor** in the Supabase dashboard
-9. Run scripts in order:
-   - `supabase/schema.sql` — creates tables, RLS, profiles, `handle_new_user()` trigger, enables Realtime
-   - `supabase/rpc.sql` — creates `latest_telemetry_averages()` KPI function
-10. Go to **Authentication → Settings**:
-    - Toggle **"Allow new users to sign up"** ON (for initial onboarding, toggle OFF after team is registered)
-    - Optionally disable **"Confirm email"** for development
-11. Add `http://localhost:3000/auth/confirm` to **Redirect URLs**
+Copy `.env.local.example` to `.env.local` and fill in:
 
-### 4. Azure IoT Hub Setup (Free Tier)
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (for seed + telemetry cron) |
+| `AZURE_IOT_HUB_CONNECTION_STRING` | IoT Hub shared access connection string |
+| `IOT_HUB_EVENTHUB_CONNECTION` | IoT Hub Built-in endpoints → Event Hub-compatible connection string |
+| `CRON_SECRET` | Random string — authenticates Vercel Cron calls |
 
-1. Go to [portal.azure.com](https://portal.azure.com) and sign in
-2. Click **Create a resource** → search "IoT Hub" → **Create**
-3. Subscription: choose **Free Trial** or existing
-4. Resource group: create new (e.g. `kinetic-industrial-rg`)
-5. IoT hub name: e.g. `motor-predictor-hub`
-6. Region: choose closest to you
-7. Tier: select **Free** (8,000 messages/day, 500 device identities)
-8. Click **Review + create** → **Create**
-9. Once deployed, go to the IoT Hub resource → **Shared access policies** (under Security settings)
-10. Click **iothubowner** → copy the **Connection string—primary key**
-11. Add to `.env.local`:
-    ```
-    AZURE_IOT_HUB_HOST=motor-predictor-hub.azure-devices.net
-    AZURE_IOT_HUB_CONNECTION_STRING=HostName=motor-predictor-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=...
-    ```
+### 4. Supabase Setup
 
-### 5. Seed the Database
+1. Go to [supabase.com](https://supabase.com), create a project
+2. In **SQL Editor**, run scripts in order:
+   - `supabase/schema.sql` — creates tables, RLS policies, profiles trigger, Realtime
+   - `supabase/rpc.sql` — creates `latest_telemetry_averages()` for dashboard KPIs
+3. In **Project Settings → API**, copy the Project URL and anon key to `.env.local`
+4. In **Project Settings → API**, copy the `service_role` key as `SUPABASE_SERVICE_ROLE_KEY`
+5. In **Authentication → Settings**:
+   - Toggle "Allow new users to sign up" ON
+   - Add `http://localhost:3000/auth/confirm` to **Redirect URLs**
+6. Optionally disable "Confirm email" for local development
+
+### 5. Azure IoT Hub Setup
+
+1. In [Azure Portal](https://portal.azure.com), create an IoT Hub (Free tier: 8,000 msg/day, 500 device identities)
+2. Go to **Shared access policies** → **iothubowner** → copy primary connection string
+3. Go to **Built-in endpoints** → copy the **Event Hub-compatible endpoint** connection string
+4. Add both to `.env.local`
+
+### 6. Seed the Database
 
 ```bash
-npx tsx supabase/seed.ts              # 8 motor nodes + 24h telemetry
+npx tsx supabase/seed.ts              # 8 motor nodes + diagnostics logs
 ```
 
-### 6. Start the Dev Server
+Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (bypasses RLS).
+
+### 7. Start the Dev Server
 
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The instrumentation hook verifies database connectivity at startup and logs the status.
+Open [http://localhost:3000](http://localhost:3000). The `instrumentation.ts` hook verifies database connectivity at startup.
 
-### 7. Create Your Account
+### 8. Create Your Account
 
 Navigate to `/signup` and register with:
 - **Email**: your email
 - **Operator ID**: e.g. `KNS-000001`
 - **Password**: min 8 characters
 
-If email confirmation is enabled, check your inbox. Otherwise log in directly at `/login`.
+### 9. Register an IoT Device
 
-### 8. Register an IoT Device
-
-1. Navigate to **Nodes** via the sidebar
-2. Click **Register New Node**
-3. Fill in **Device Name** and **Location**
-4. Leave **Custom Device ID** empty for auto-generation
-5. Click **Register Device**
-6. Save the displayed credentials (Device ID, IoT Hub Host, Primary Key)
-7. Flash these credentials to your ESP32/MCU for MQTT-based telemetry
-
-## Required Environment Variables
-
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (for seed + telemetry cron) |
-| `AZURE_IOT_HUB_HOST` | Azure IoT Hub hostname |
-| `AZURE_IOT_HUB_CONNECTION_STRING` | IoT Hub owner connection string |
-| `IOT_HUB_EVENTHUB_CONNECTION` | IoT Hub → Built-in endpoints → Event Hub-compatible connection string |
-| `CRON_SECRET` | Random string — authenticates Vercel Cron calls |
-| `CRON_SECRET` | Random string — authenticates Vercel Cron calls |
-
-See `.env.local.example` for the template.
+1. Navigate to **Nodes** → click **Register New Node**
+2. Fill in **Device Name** and **Location**
+3. Click **Register Device** (auto-generates device ID)
+4. Optionally fill in motor specs (type, voltage, RPM, torque, current) — skippable
+5. Save the displayed credentials (Device ID, Host, Primary Key)
+6. Flash these to your ESP32/MCU for MQTT-based telemetry
 
 ## Available Scripts
 
 ```bash
-pnpm dev                           # Start development server (Turbopack)
-pnpm test                          # Run Vitest test suite
-pnpm build                         # Production build
-pnpm start                         # Start production server
-pnpm lint                          # Run ESLint
+pnpm dev        # Start dev server (Turbopack)
+pnpm test       # Run Vitest test suite
+pnpm build      # TypeScript check + production build
+pnpm lint       # Run ESLint
 ```
-
-## Testing
-
-The project uses **Vitest** with **React Testing Library** and `jsdom`. Tests cover API routes (signup, device registration, diagnostics, telemetry sync), proxy route protection, Supabase hooks (`useAuth`, `useSupabase`), UI components, and utility functions.
-
-```bash
-pnpm test                          # Run all tests
-pnpm vitest run tests/hooks.test.tsx     # Run a specific test file
-```
-
-Mock external services (Supabase, Azure IoT Hub, Event Hubs) in tests — do not hit live services from unit tests. See `tests/helpers/supabase.ts` for reusable mock builders.
-
-## Seeding
-
-```bash
-npx tsx supabase/seed.ts           # Seed motor nodes + telemetry (8 nodes, 24h data)
-```
-
-## Database Schema
-
-| Table | Purpose |
-|---|---|
-| `motor_nodes` | Device inventory — name, type, location, specs, status |
-| `telemetry_live` | Real-time sensor data (Realtime-enabled) — RPM, temp, vibration, current, status |
-| `diagnostics_logs` | System health check history |
-| `terminal_logs` | Command history per device |
-| `profiles` | Extended user data — operator_id, email, linked to `auth.users` via FK |
-| `telemetry_checkpoints` | Cron checkpoint offsets per Event Hub partition |
 
 ## Authentication
 
-Authentication uses **Supabase Auth** (email + password) with `@supabase/ssr` for route protection and cookie management.
+Uses **Supabase Auth** (email/password) with `@supabase/ssr` for route protection and cookie management.
 
-### Key Details
-
-- **Login**: `supabase.auth.signInWithPassword({ email, password })` in the `useAuth` hook
-- **Logout**: `supabase.auth.signOut()` — clears Supabase session cookies
-- **Password reset**: `supabase.auth.resetPasswordForEmail()` in `useAuth` hook → `/forgot-password` page. Email link uses PKCE `code` flow → `/auth/confirm` exchanges it via `exchangeCodeForSession()` → redirects to `/update-password` for new password via `updateUser()`
-- **Session cookie**: `__Host-sb-auth-token` managed by `@supabase/ssr`
-- **User data**: `operator_id` stored in `user_metadata.operator_id` during signup; auto-populated to `public.profiles` via `handle_new_user()` trigger
-- **Signup gate**: Controlled by Supabase dashboard → Authentication → Settings → "Allow new users to sign up" toggle
-- **Email confirmation**: Configurable in Supabase dashboard; `/auth/confirm` route handles both `verifyOtp` (token_hash) and `exchangeCodeForSession` (PKCE code) flows
+- **Session cookie**: `__Host-sb-auth-token` managed by `@supabase/ssr` — `Secure`, `SameSite=Lax`, `Path=/`
+- **Login**: `supabase.auth.signInWithPassword()` via `useAuth` hook
+- **Logout**: `supabase.auth.signOut()` — clears cookies
+- **Password reset**: `resetPasswordForEmail()` → email link with PKCE code → `/auth/confirm` exchanges via `exchangeCodeForSession()` → `/update-password` sets new password via `updateUser()`
+- **Signup gate**: Supabase dashboard toggle + `email_confirmed_at` check in proxy middleware
+- **Re-auth**: `useReauth` hook maintains a 5-min in-memory TTL gate. Sensitive operations (device register, diagnostics run, preferences) require password re-entry via `ReauthDialog` modal.
 
 ### Route Protection
 
-`src/proxy.ts` (Next.js 16 convention) protects `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor`, `/preferences` — redirects to `/login` if unauthenticated. Authenticated users on `/login` are redirected to `/dashboard`. Root `/` redirects to `/dashboard`.
+`src/proxy.ts` (Next.js 16 middleware convention) protects `/dashboard`, `/nodes`, `/health`, `/terminal`, `/motor`, `/preferences`. Unauthenticated users are redirected to `/login`. Authenticated users on `/login` are redirected to `/dashboard`. Root `/` redirects to `/dashboard`. Users with unconfirmed email are also redirected to `/login`.
 
-### RLS (Row Level Security)
+### Rate Limiting
 
-| Table | Policy |
+In-memory rate limiter applied to:
+
+| Endpoint | Limit | Keyed by |
+|---|---|---|
+| `POST /api/auth/signup` | 5 attempts/hour | IP |
+| `POST /api/devices/register` | 10 attempts/hour | User ID |
+| `POST /api/diagnostics/run` | 1 attempt/30 seconds | User ID |
+
+### Security Headers
+
+All responses include via `next.config.ts`:
+
+- **Content-Security-Policy** — restricted script/style/img/font/connect-src
+- **Strict-Transport-Security** — 2-year max-age with preload
+- **X-Frame-Options: DENY**
+- **X-Content-Type-Options: nosniff**
+- **Referrer-Policy: strict-origin-when-cross-origin**
+- **Permissions-Policy** — camera/microphone/geolocation disabled
+
+## Database Schema
+
+| Table | Purpose | RLS |
+|---|---|---|
+| `motor_nodes` | Device inventory — name, type, location, specs, status | Authenticated |
+| `telemetry_live` | Real-time sensor data (Realtime-enabled) — RPM, temp, vibration, current, status | Authenticated |
+| `diagnostics_logs` | System health check history | Authenticated |
+| `terminal_logs` | Command history per device | Authenticated |
+| `profiles` | Extended user data — operator_id, email, linked to `auth.users` | User-scoped (`auth.uid() = id`) |
+| `telemetry_checkpoints` | Cron checkpoint offsets per Event Hub partition | Service role only |
+
+Fleet tables (`motor_nodes`, `telemetry_live`, `diagnostics_logs`, `terminal_logs`) are intentionally shared across all authenticated operators. `profiles` is user-scoped (contains PII). `telemetry_checkpoints` is service-role only.
+
+The `handle_new_user()` trigger auto-creates a profile row when a user confirms their email. It runs as `SECURITY DEFINER` to bypass RLS.
+
+## Node Health
+
+Health status is computed by `getNodeHealth()` in `src/lib/node-health.ts` — a pure function that takes a `MotorNode` and optional telemetry snapshot and returns `{ status, message, severity }` where severity is `good | warning | degraded | critical`.
+
+Checks (in priority order):
+
+| Condition | Severity |
 |---|---|
-| `profiles` | `auth.uid() = id` — user-scoped (PII) |
-| `motor_nodes` | `auth.role() = 'authenticated'` — shared fleet |
-| `telemetry_live` | `auth.role() = 'authenticated'` — shared operational |
-| `diagnostics_logs` | `auth.role() = 'authenticated'` — shared operational |
-| `terminal_logs` | `auth.role() = 'authenticated'` — shared operational |
-| `telemetry_checkpoints` | `deny_authenticated` — service role only |
+| Node Offline | degraded |
+| Telemetry status "critical" | critical |
+| Temp > 80°C or Vibration > 4.0 mm/s | critical |
+| Telemetry status "warning" or node Maintenance | warning |
+| Temp > 50°C, Vibration > 2.5 mm/s, Current > 15A, RPM > max, Current > rated | degraded |
+| Node Idle | good |
+| Active + no issues | good |
 
-The `handle_new_user()` trigger runs as `SECURITY DEFINER` (bypasses RLS) to auto-create profiles on signup.
+`useFleetHealth()` applies `getNodeHealth()` across all nodes and reports the worst finding. The same function drives the dashboard FleetHealth card and single-node status pill on `/motor/[id]`.
 
-### Inactivity Auto-Logout (30 min) — Planned
+## Device Registration Flow
 
-Client-side inactivity monitoring with a 28-minute warning modal and 30-minute auto-logout. Planned for a future release — not yet implemented (see Future TODOs in AGENTS.md).
+1. User clicks "Register New Node" on `/nodes` → opens `RegisterDeviceDialog`
+2. Enter `device_name` + `location` → POST to `/api/devices/register`
+3. Server generates a slug-based device ID, creates symmetric-key identity in Azure IoT Hub, inserts row into `motor_nodes` with defaults
+4. `DeviceDetailsForm` — motor type, voltage, RPM, torque, current → PATCH to `/api/devices/[id]/details` (skippable)
+5. Azure credentials displayed once — user copies them to flash onto the ESP32/MCU
 
-## Firmware Design (ESP32 / MCU)
+Existing devices can be recalibrated via `CalibrateDialog` (reuses `DeviceDetailsForm` pre-filled with current values).
 
-The system uses **edge-native analysis** — each motor node runs self-diagnostics locally on the MCU and reports status + telemetry to the cloud. The dashboard receives and displays the results; it does not perform the analysis.
+## Diagnostics
 
-### Architecture
+1. User clicks "Run System Diagnostics" on `/health` → POSTs to `/api/diagnostics/run`
+2. Server iterates all `motor_nodes` with IoT device IDs, calls Azure `Registry.get()` per device
+3. Each check measures round-trip latency, records connection state
+4. Runs a lightweight Supabase query to confirm DB reachability
+5. All results inserted into `diagnostics_logs` with `check_type`, `result`, `performance` (latency in ms), `operator`, `node_id`
+6. `DiagnosticsGrid` displays: Server (hardcoded), Database (latency from log), Edge Pings (average latency + slow nodes >500ms)
+7. Rate limited to 1 run per 30 seconds per user
 
-```
-┌─────────────────────────────┐     MQTT (SAS Token)     ┌──────────────────────┐
-│  ESP32 / MCU (Node)         │ ◄────────────────────── ► │  Azure IoT Hub       │
-│                             │                           │                      │
-│  ┌───────────────────────┐  │                           │  ┌────────────────┐  │
-│  │ Sensor Read Loop      │  │                           │  │ Device Registry │  │
-│  │  - RPM (hall sensor)  │  │                           │  └────────────────┘  │
-│  │  - Temperature (RTD)  │  │                           │  ┌────────────────┐  │
-│  │  - Vibration (IMU)    │  │                           │  │ MQTT Broker    │──► Supabase
-│  │  - Current (ACS712)   │  │                           │  └────────────────┘  │  (Realtime)
-│  └───────────────────────┘  │                           └──────────────────────┘
-│  └───────────────────────┘  │
-│  ┌───────────────────────┐  │
-│  │ Local Analysis Engine │  │
-│  │  - Threshold checks   │  │
-│  │  - Anomaly detection  │  │
-│  │  - Status evaluation  │  │
-│  └───────────────────────┘  │
-└─────────────────────────────┘
-```
+## Telemetry Ingestion
 
-### MQTT Telemetry Topic
+1. ESP32 publishes telemetry JSON over MQTT to Azure IoT Hub every 5 seconds
+2. Vercel Cron hits `GET /api/cron/telemetry-sync` — daily at midnight on Hobby (Pro supports 1-min polling)
+3. Route creates an `EventHubConsumerClient` (`$Default` consumer group), gets partition IDs, loads last offsets from `telemetry_checkpoints`
+4. Subscribes to each partition, receives events for 8 seconds (max 150 events)
+5. Parses JSON, looks up `motor_nodes` by `iot_device_id`, builds insert rows with `partition_id` + `event_hub_offset`
+6. Bulk upserts into `telemetry_live` with `UNIQUE(partition_id, event_hub_offset)` — duplicate-safe
+7. Updates `motor_nodes.status` per motor from telemetry payload
+8. Reaps stale nodes: Active → Idle (no telemetry in 1h), Idle → Offline (no telemetry in 1d)
+9. Updates checkpoints for next run
 
-Each device publishes a JSON payload every **5 seconds** to:
-
-```
-devices/{deviceId}/messages/events/
-```
+**Duplicate safety**: If the server crashes after insert but before checkpoint update, the next run re-reads the same events but they're silently skipped by the unique constraint.
 
 ### Telemetry Payload Schema
 
@@ -320,71 +308,39 @@ devices/{deviceId}/messages/events/
 }
 ```
 
-> **Backward-compatible**: The ingestion route also accepts the legacy field names `temperature_c`, `vibration_mms`, `current_a`, and `voltage_v` (ignored). New deployments should use the schema above. Legacy support will be removed in a future commit.
+Legacy field names `temperature_c`, `vibration_mms`, `current_a`, `voltage_v` are still accepted with lower priority. New deployments should use the schema above.
 
-### Status Codes
+### Connection String Format
 
-The node performs on-device analysis and sends one of:
+`IOT_HUB_EVENTHUB_CONNECTION` must start with `Endpoint=`. If it already contains `EntityPath=...`, omit `eventHubName` from the `EventHubConsumerClient` constructor — the SDK reads it from the connection string.
 
-| Status | Meaning | Dashboard Badge |
-|---|---|---|---|
-| `Active` | All sensors nominal, normal operation | Active (green) |
-| `warning` | Parameter approaching threshold (e.g. temp ±5°C from normal) | Maintenance Required (amber) |
-| `critical` | Threshold exceeded or sensor failure | Maintenance Required (red) |
-| `idle` | Motor stopped but healthy | Idle (amber) |
+## Testing
 
-### On-Device Analysis Logic (Pseudocode)
+Uses **Vitest** with **React Testing Library** and `jsdom`. 76 tests across 5 files:
 
-```cpp
-// Runs every 5-second loop on the ESP32
-void analyze_and_report() {
-  float rpm     = read_hall_sensor();
-  float temp    = read_rtd();
-  float vib     = read_imu_rms();
-  float current = read_acs712();
+| File | Coverage |
+|---|---|
+| `tests/api-routes.test.ts` | API routes — signup, device register/details, diagnostics, password, telemetry sync |
+| `tests/proxy.test.ts` | Route protection — redirects, auth checks, email confirmation gate |
+| `tests/hooks.test.tsx` | `useAuth`, `useReauth`, `useSupabase` (nodes, KPIs, fleet health, telemetry, diagnostics, terminal) |
+| `tests/components.test.tsx` | `StatusChip`, `KpiCard`, `DeviceCard`, `DiagnosticsGrid`, `TerminalWindow`, `ReauthDialog` |
+| `tests/lib.test.ts` | `getNodeHealth`, rate-limit, images, Supabase clients, IoT Hub (register, status, delete, list, generate ID) |
 
-  String status = "Active";
-  String message = "Normal operation";
+Mock external services (Supabase, Azure IoT Hub, Event Hubs) — do not hit live services from unit tests. `tests/helpers/supabase.ts` provides reusable Supabase query-chain mocks.
 
-  // Threshold checks (configurable per motor type)
-  if (temp > TEMP_CRITICAL_THRESHOLD || vib > VIB_CRITICAL_THRESHOLD) {
-    status = "critical";
-    message = "Critical threshold exceeded";
-  } else if (temp > TEMP_WARN_THRESHOLD || vib > VIB_WARN_THRESHOLD) {
-    status = "warning";
-    message = "Parameter approaching warning threshold";
-  } else if (rpm == 0) {
-    status = "idle";
-    message = "Motor stopped";
-  }
-
-  // Build and publish JSON payload over MQTT
-  publish_telemetry(rpm, temp, vib, current, status, message);
-}
+```bash
+pnpm test                              # Run all tests
+pnpm vitest run tests/hooks.test.tsx   # Run a specific file
 ```
 
-### MQTT Authentication (SAS Token)
+## Design System
 
-The device authenticates to Azure IoT Hub using a **Shared Access Signature (SAS) token** derived from the primary key. The SAS token is generated once on the MCU from the credentials received during device registration:
+Material Design 3 Light theme. All tokens in `src/app/globals.css` via `@theme` — no `tailwind.config` file.
 
-```
-Host:       motor-predictor-hub.azure-devices.net
-Device ID:  esp32-production-motor-44qcpd
-Username:   {host}/{deviceId}/?api-version=2021-04-12
-Password:   SharedAccessSignature sr={host}%2Fdevices%2F{deviceId}&sig={hashedKey}&se={expiry}
-```
-
-Use the [Azure IoT Hub MQTT](https://learn.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support) protocol directly — no Azure SDK required on the MCU. A lightweight implementation using `PubSubClient` (Arduino) or `esp-mqtt` (ESP-IDF) is sufficient.
-
-### Data Flow
-
-1. ESP32 reads sensors → runs local analysis → determines status
-2. Publishes telemetry JSON over MQTT to Azure IoT Hub every 5 seconds
-3. Vercel Cron hits `GET /api/cron/telemetry-sync` every minute → `EventHubConsumerClient` drains events via the IoT Hub built-in Event Hub-compatible endpoint
-4. Route bulk-inserts rows into `telemetry_live` using the Supabase service role key (bypasses RLS)
-5. Route updates `motor_nodes.status` per motor from telemetry payload status and degrades stale nodes (Active → Idle after 1h, Idle → Offline after 1d)
-6. Supabase Realtime pushes new rows to the dashboard UI
-7. Dashboard KPI cards, charts, and device status badges update live
+- **Typography**: Inter (sans) + JetBrains Mono (mono) via `next/font/google`
+- **Spacing tokens**: `p-margin-desktop` (32px), `p-margin-mobile` (16px), `p-gutter` (16px)
+- **Icons**: Material Symbols via `material-symbols` npm package — `<span className="material-symbols-outlined">icon</span>`
+- **Charts**: Recharts `ResponsiveContainer` — parent needs explicit height
 
 ## License
 

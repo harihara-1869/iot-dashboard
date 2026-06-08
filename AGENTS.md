@@ -20,11 +20,11 @@ The project uses **Vitest** with **React Testing Library** and `jsdom`.
 | `vitest.config.ts` | Vitest config, React plugin, `@/*` path alias, `jsdom` environment |
 | `vitest.setup.ts` | Testing Library cleanup, jest-dom matchers, default public env vars |
 | `tests/helpers/supabase.ts` | Reusable Supabase query-chain mocks and JSON request helper |
-| `tests/api-routes.test.ts` | API route tests with mocked Supabase, Azure IoT Hub, and Event Hubs |
-| `tests/proxy.test.ts` | `src/proxy.ts` route protection tests |
-| `tests/hooks.test.tsx` | `useAuth` and Supabase data hook tests |
-| `tests/components.test.tsx` | Key UI/component behavior tests |
-| `tests/lib.test.ts` | Pure and near-pure `src/lib` utility tests |
+| `tests/api-routes.test.ts` | API route tests — signup, device register/details, diagnostics, password change, telemetry sync |
+| `tests/proxy.test.ts` | `src/proxy.ts` route protection — protected routes, login redirect, email confirmation gate |
+| `tests/hooks.test.tsx` | `useAuth`, `useReauth`, `useSupabase` hooks — fleet health, KPIs, telemetry, diagnostics, terminal |
+| `tests/components.test.tsx` | Key UI components — StatusChip, KpiCard, DeviceCard, DiagnosticsGrid, TerminalWindow, ReauthDialog |
+| `tests/lib.test.ts` | `getNodeHealth` (all severity branches), rate-limit, images, Supabase clients, IoT Hub functions |
 
 ### Test conventions
 
