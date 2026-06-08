@@ -11,7 +11,7 @@ export interface DeviceDetailsValues {
   voltage: string;
   torque: string;
   max_rpm: number;
-  ip_rating: string;
+  rated_current: string;
 }
 
 interface Props {
@@ -27,7 +27,7 @@ export default function DeviceDetailsForm({ submitting, submitLabel, defaultValu
   const [voltage, setVoltage] = useState(defaultValues?.voltage ?? "");
   const [torque, setTorque] = useState(defaultValues?.torque ?? "");
   const [maxRpm, setMaxRpm] = useState(defaultValues?.max_rpm?.toString() ?? "");
-  const [ipRating, setIpRating] = useState(defaultValues?.ip_rating ?? "");
+  const [ratedCurrent, setRatedCurrent] = useState(defaultValues?.rated_current ?? "");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +36,7 @@ export default function DeviceDetailsForm({ submitting, submitLabel, defaultValu
       voltage: voltage.trim(),
       torque: torque.trim(),
       max_rpm: parseInt(maxRpm, 10) || 0,
-      ip_rating: ipRating.trim(),
+      rated_current: ratedCurrent.trim(),
     });
   }
 
@@ -103,15 +103,15 @@ export default function DeviceDetailsForm({ submitting, submitLabel, defaultValu
       </div>
 
       <div className="space-y-2">
-        <label className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold text-on-surface uppercase" htmlFor="ip-rating">
-          IP Rating <span className="text-error">*</span>
+        <label className="font-mono text-[12px] leading-4 tracking-[0.05em] font-bold text-on-surface uppercase" htmlFor="rated-current">
+          Rated Current <span className="text-error">*</span>
         </label>
         <input
-          id="ip-rating"
+          id="rated-current"
           className="w-full h-12 bg-surface border border-outline px-4 font-mono text-[14px] leading-5 font-medium focus:border-primary focus:ring-0 rounded-none outline-none transition-all"
-          placeholder="e.g. IP65"
-          value={ipRating}
-          onChange={(e) => setIpRating(e.target.value)}
+          placeholder="e.g. 2.5 A"
+          value={ratedCurrent}
+          onChange={(e) => setRatedCurrent(e.target.value)}
           required
         />
       </div>

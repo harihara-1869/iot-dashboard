@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         voltage: "—",
         torque: "—",
         max_rpm: 0,
-        ip_rating: "—",
+        rated_current: "—",
         iot_device_id: iotCredentials.deviceId,
       });
 

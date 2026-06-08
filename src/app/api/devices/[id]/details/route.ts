@@ -23,7 +23,7 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const { type, voltage, torque, max_rpm, ip_rating } = body;
+    const { type, voltage, torque, max_rpm, rated_current } = body;
 
     if (!type || !VALID_TYPES.includes(type)) {
       return NextResponse.json({ success: false, error: "Valid motor type is required." }, { status: 400 });
@@ -37,8 +37,8 @@ export async function PATCH(
     if (!torque || typeof torque !== "string") {
       return NextResponse.json({ success: false, error: "Torque is required." }, { status: 400 });
     }
-    if (!ip_rating || typeof ip_rating !== "string") {
-      return NextResponse.json({ success: false, error: "IP rating is required." }, { status: 400 });
+    if (!rated_current || typeof rated_current !== "string") {
+      return NextResponse.json({ success: false, error: "Rated current is required." }, { status: 400 });
     }
 
     const { data: existing, error: lookupError } = await supabase
@@ -53,7 +53,7 @@ export async function PATCH(
 
     const { data: node, error: updateError } = await supabase
       .from("motor_nodes")
-      .update({ type, voltage, torque, max_rpm, ip_rating })
+      .update({ type, voltage, torque, max_rpm, rated_current })
       .eq("id", id)
       .select()
       .single();

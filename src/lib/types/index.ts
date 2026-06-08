@@ -11,7 +11,7 @@ export interface MotorNode {
   voltage: string;
   torque: string;
   max_rpm: number;
-  ip_rating: string;
+  rated_current: string;
   iot_device_id: string | null;
   created_at: string;
 }
@@ -33,6 +33,8 @@ export interface TelemetrySnapshot {
   temperature: number;
   vibration: number;
   current: number;
+  status: string;
+  status_message: string;
 }
 
 export interface DiagnosticsLog {

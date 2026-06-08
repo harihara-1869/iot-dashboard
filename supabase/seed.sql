@@ -2,16 +2,16 @@
 -- Run after schema.sql
 
 -- Motor Nodes
-INSERT INTO motor_nodes (id, name, type, location, status, voltage, torque, max_rpm, ip_rating)
+INSERT INTO motor_nodes (id, name, type, location, status, voltage, torque, max_rpm, rated_current)
 VALUES
-  ('MOT-17-A', 'NEMA-17-Precision', 'Stepper', 'Room 4 Stepper', 'Active', '12.0 V DC', '0.45 Nm', 3000, 'IP54'),
-  ('MOT-01-A', 'Main Induction Drive', 'Induction', 'Bay 01 Main', 'Active', '480.0 V AC', '150.2 Nm', 1750, 'IP67'),
-  ('MOT-FAN-B', 'Cooling Fan Motor', 'Cooling', 'HVAC Zone 02', 'Maintenance', '230.0 V AC', '12.5 Nm', 2400, 'IP44'),
-  ('MOT-CON-03', 'Conveyor Drive', 'Conveyor', 'Line 3 Feed', 'Idle', '110.0 V DC', '45.0 Nm', 1200, 'IP65'),
-  ('MOT-SRV-09', 'High-Torque Servo', 'Servo', 'Arm A-4 Axis 1', 'Active', '48.0 V DC', '8.2 Nm', 6000, 'IP68'),
-  ('MOT-PMP-12', 'Hydraulic Pump Drive', 'Hydraulic', 'Coolant Pump', 'Active', '208.0 V AC', '22.0 Nm', 3500, 'IP66'),
-  ('STP-MR-02', 'Stepper Motor', 'Stepper', 'Motor Room', 'Active', '12.0 V DC', '0.45 Nm', 3000, 'IP54'),
-  ('STP-CP-03', 'Stepper Motor', 'Stepper', 'Control Panel', 'Idle', '12.0 V DC', '0.40 Nm', 2800, 'IP52')
+  ('MOT-17-A', 'NEMA-17-Precision', 'Stepper', 'Room 4 Stepper', 'Active', '12.0 V DC', '0.45 Nm', 3000, '2.0 A'),
+  ('MOT-01-A', 'Main Induction Drive', 'Induction', 'Bay 01 Main', 'Active', '480.0 V AC', '150.2 Nm', 1750, '12.5 A'),
+  ('MOT-FAN-B', 'Cooling Fan Motor', 'Cooling', 'HVAC Zone 02', 'Maintenance', '230.0 V AC', '12.5 Nm', 2400, '5.0 A'),
+  ('MOT-CON-03', 'Conveyor Drive', 'Conveyor', 'Line 3 Feed', 'Idle', '110.0 V DC', '45.0 Nm', 1200, '8.0 A'),
+  ('MOT-SRV-09', 'High-Torque Servo', 'Servo', 'Arm A-4 Axis 1', 'Active', '48.0 V DC', '8.2 Nm', 6000, '3.5 A'),
+  ('MOT-PMP-12', 'Hydraulic Pump Drive', 'Hydraulic', 'Coolant Pump', 'Active', '208.0 V AC', '22.0 Nm', 3500, '7.5 A'),
+  ('STP-MR-02', 'Stepper Motor', 'Stepper', 'Motor Room', 'Active', '12.0 V DC', '0.45 Nm', 3000, '1.8 A'),
+  ('STP-CP-03', 'Stepper Motor', 'Stepper', 'Control Panel', 'Idle', '12.0 V DC', '0.40 Nm', 2800, '1.5 A')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   type = EXCLUDED.type,
@@ -20,7 +20,7 @@ ON CONFLICT (id) DO UPDATE SET
   voltage = EXCLUDED.voltage,
   torque = EXCLUDED.torque,
   max_rpm = EXCLUDED.max_rpm,
-  ip_rating = EXCLUDED.ip_rating;
+  rated_current = EXCLUDED.rated_current;
 
 -- Diagnostics Logs
 INSERT INTO diagnostics_logs (timestamp, check_type, result, performance, operator)

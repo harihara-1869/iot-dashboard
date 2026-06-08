@@ -79,10 +79,10 @@ export default function DeviceCard({ node, onUpdate }: { node: MotorNode; onUpda
           </div>
           <div>
             <p className="font-mono text-[10px] leading-4 tracking-[0.05em] font-bold text-on-surface-variant uppercase">
-              IP Rating
+              Rated Current
             </p>
             <p className="font-mono text-[14px] leading-5 font-medium">
-              {node.ip_rating}
+              {node.rated_current}
             </p>
           </div>
         </div>

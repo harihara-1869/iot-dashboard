@@ -48,7 +48,7 @@ function node(overrides: Partial<MotorNode> = {}): MotorNode {
     voltage: "24V",
     torque: "1.8Nm",
     max_rpm: 3200,
-    ip_rating: "IP54",
+    rated_current: "2.5 A",
     iot_device_id: "dev-1",
     created_at: "2026-05-28T00:00:00Z",
     ...overrides,

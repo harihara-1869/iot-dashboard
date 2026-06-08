@@ -200,7 +200,7 @@ describe("API routes", () => {
         voltage: "24V",
         torque: "1.8Nm",
         max_rpm: 3200,
-        ip_rating: "IP54",
+        rated_current: "2.5 A",
       }, { method: "PATCH" }),
       { params: Promise.resolve({ id: "MOT-1" }) },
     );
@@ -212,7 +212,7 @@ describe("API routes", () => {
       voltage: "24V",
       torque: "1.8Nm",
       max_rpm: 3200,
-      ip_rating: "IP54",
+      rated_current: "2.5 A",
     });
   });
 

@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS motor_nodes (
   voltage TEXT NOT NULL,
   torque TEXT NOT NULL,
   max_rpm INTEGER NOT NULL,
-  ip_rating TEXT NOT NULL,
+  rated_current TEXT NOT NULL DEFAULT '---',
   image_url TEXT,
   iot_device_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
