@@ -4,10 +4,13 @@ import { useState, useMemo, useCallback } from "react";
 import { useDiagnosticsLogs, useMotorNodes } from "@/lib/hooks/useSupabase";
 import DiagnosticsGrid from "@/components/health/diagnostics-grid";
 import HealthHistoryTable from "@/components/health/history-table";
+import { isReauthed } from "@/lib/hooks/useReauth";
+import ReauthDialog from "@/components/auth/reauth-dialog";
 
 export default function HealthPage() {
   const [page, setPage] = useState(1);
   const [running, setRunning] = useState(false);
+  const [reauthOpen, setReauthOpen] = useState(false);
   const { nodes, loading: nodesLoading } = useMotorNodes();
   const { logs, totalPages, loading: logsLoading, refetch } = useDiagnosticsLogs(page, 10);
 
@@ -33,6 +36,14 @@ export default function HealthPage() {
     }
   }, [refetch]);
 
+  function beginDiagnostics() {
+    if (isReauthed()) {
+      runDiagnostics();
+    } else {
+      setReauthOpen(true);
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <div className="flex justify-between items-end mb-8">
@@ -45,7 +56,7 @@ export default function HealthPage() {
           <h2 className="font-sans text-[48px] leading-[56px] tracking-[-0.02em] font-bold text-primary">System Health Diagnostics</h2>
         </div>
         <button
-          onClick={runDiagnostics}
+          onClick={beginDiagnostics}
           disabled={running}
           className="bg-primary text-on-primary px-8 py-3 rounded-lg flex items-center gap-3 hover:opacity-90 active:scale-95 transition-all shadow-sm border-b-2 border-primary-container disabled:opacity-50"
         >
@@ -89,6 +100,12 @@ export default function HealthPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+      />
+
+      <ReauthDialog
+        open={reauthOpen}
+        onSuccess={() => { setReauthOpen(false); runDiagnostics(); }}
+        onCancel={() => { setReauthOpen(false); }}
       />
     </div>
   );

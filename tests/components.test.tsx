@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import StatusChip from "@/components/ui/status-chip";
@@ -20,6 +20,24 @@ vi.mock("@/components/nodes/calibrate-dialog", () => ({
     open ? <div role="dialog"><button onClick={onClose}>Close calibration</button></div> : null,
 }));
 
+const mockUseAuth = vi.hoisted(() =>
+  vi.fn(() => ({ user: { id: "user-1", email: "op@example.com", isVerified: true }, loading: false, signIn: vi.fn(), signOut: vi.fn(), resetPassword: vi.fn() })),
+);
+
+vi.mock("@/lib/hooks/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+const mockReauth = vi.hoisted(() => ({
+  reauth: vi.fn().mockResolvedValue({ error: null }),
+  isReauthed: vi.fn().mockReturnValue(false),
+  clearReauth: vi.fn(),
+}));
+
+vi.mock("@/lib/hooks/useReauth", () => ({
+  ...mockReauth,
+}));
+
 function node(overrides: Partial<MotorNode> = {}): MotorNode {
   return {
     id: "MOT-17-A",
@@ -30,7 +48,7 @@ function node(overrides: Partial<MotorNode> = {}): MotorNode {
     voltage: "24V",
     torque: "1.8Nm",
     max_rpm: 3200,
-    ip_rating: "IP54",
+    rated_current: "2.5 A",
     iot_device_id: "dev-1",
     created_at: "2026-05-28T00:00:00Z",
     ...overrides,
@@ -114,5 +132,62 @@ describe("key components", () => {
     expect(screen.getByText("ping")).toBeInTheDocument();
     expect(screen.getByText("[PING] 64 bytes from MOT-01-A: time=8ms")).toBeInTheDocument();
     expect(input).toHaveValue("");
+  });
+
+  describe("ReauthDialog", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockReauth.reauth.mockResolvedValue({ error: null });
+    });
+
+    it("renders when open", async () => {
+      const ReauthDialog = (await import("@/components/auth/reauth-dialog")).default;
+      render(<ReauthDialog open={true} onSuccess={vi.fn()} onCancel={vi.fn()} />);
+      expect(screen.getByText("Re-authentication Required")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Enter your password to continue")).toBeInTheDocument();
+    });
+
+    it("hides when not open", async () => {
+      const ReauthDialog = (await import("@/components/auth/reauth-dialog")).default;
+      const { container } = render(<ReauthDialog open={false} onSuccess={vi.fn()} onCancel={vi.fn()} />);
+      expect(container.firstChild).toBeNull();
+    });
+
+    it("calls onSuccess after successful reauth", async () => {
+      const user = userEvent.setup();
+      const ReauthDialog = (await import("@/components/auth/reauth-dialog")).default;
+      const onSuccess = vi.fn();
+      render(<ReauthDialog open={true} onSuccess={onSuccess} onCancel={vi.fn()} />);
+
+      const input = screen.getByPlaceholderText("Enter your password to continue");
+      await user.type(input, "correct");
+      await user.click(screen.getByText("CONFIRM"));
+
+      expect(mockReauth.reauth).toHaveBeenCalledWith("op@example.com", "correct");
+      await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    });
+
+    it("shows error on failed reauth", async () => {
+      mockReauth.reauth.mockResolvedValueOnce({ error: "Invalid" });
+      const user = userEvent.setup();
+      const ReauthDialog = (await import("@/components/auth/reauth-dialog")).default;
+      render(<ReauthDialog open={true} onSuccess={vi.fn()} onCancel={vi.fn()} />);
+
+      const input = screen.getByPlaceholderText("Enter your password to continue");
+      await user.type(input, "wrong");
+      await user.click(screen.getByText("CONFIRM"));
+
+      await vi.waitFor(() => expect(screen.getByText("Incorrect password.")).toBeInTheDocument());
+    });
+
+    it("calls onCancel", async () => {
+      const user = userEvent.setup();
+      const ReauthDialog = (await import("@/components/auth/reauth-dialog")).default;
+      const onCancel = vi.fn();
+      render(<ReauthDialog open={true} onSuccess={vi.fn()} onCancel={onCancel} />);
+
+      await user.click(screen.getByText("CANCEL"));
+      expect(onCancel).toHaveBeenCalled();
+    });
   });
 });

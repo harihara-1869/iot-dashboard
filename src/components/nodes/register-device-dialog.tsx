@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { RegisterDeviceResult, DeviceCredentials } from "@/lib/iot-hub/index";
 import DeviceDetailsForm, { type DeviceDetailsValues } from "@/components/nodes/device-details-form";
 import Button from "@/components/ui/button";
+import { isReauthed } from "@/lib/hooks/useReauth";
+import ReauthDialog from "@/components/auth/reauth-dialog";
 
 interface Props {
   open: boolean;
@@ -17,11 +19,21 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
   const [location, setLocation] = useState("");
   const [registerResult, setRegisterResult] = useState<RegisterDeviceResult | null>(null);
   const [error, setError] = useState("");
+  const [reauthOpen, setReauthOpen] = useState(false);
 
   if (!open) return null;
 
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault();
+  function beginRegistration(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (isReauthed()) {
+      handleRegister(e);
+    } else {
+      setReauthOpen(true);
+    }
+  }
+
+  async function handleRegister(e?: React.FormEvent) {
+    e?.preventDefault();
     setStep("loading");
     setError("");
 
@@ -111,6 +123,7 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
   }
 
   return (
+    <>
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-primary/40 backdrop-blur-sm" onClick={handleClose} />
       <div className="relative bg-surface-container-lowest border border-outline-variant rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
@@ -208,7 +221,7 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
           )}
 
           {(step === "register" || step === "error") && (
-            <form onSubmit={handleRegister} className="space-y-5">
+            <form onSubmit={beginRegistration} className="space-y-5">
               {error && (
                 <div className="bg-error/5 border border-error/20 rounded-lg p-3 flex items-start gap-2">
                   <span className="material-symbols-outlined text-error text-[18px]">error</span>
@@ -254,9 +267,16 @@ export default function RegisterDeviceDialog({ open, onClose, onRegistered }: Pr
               </div>
             </form>
           )}
-        </div>
+       </div>
       </div>
     </div>
+
+    <ReauthDialog
+      open={reauthOpen}
+      onSuccess={() => { setReauthOpen(false); handleRegister(); }}
+      onCancel={() => { setReauthOpen(false); }}
+    />
+    </>
   );
 }
 

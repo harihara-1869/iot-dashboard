@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MotorNode, TelemetryPoint, DiagnosticsLog, TelemetrySnapshot } from "@/lib/types";
+import { getNodeHealth, type FleetHealth, type Severity } from "@/lib/node-health";
 
 const supabase = createClient();
 
@@ -26,10 +27,15 @@ export function useMotorNodes() {
       const channel = supabase
         .channel("motor_nodes_changes")
         .on("postgres_changes", { event: "*", schema: "public", table: "motor_nodes" }, fetchNodes)
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.warn("Realtime subscription unavailable — data will be fetched via REST.", err?.message ?? status);
+            supabase.removeChannel(channel);
+          }
+        });
       return () => { supabase.removeChannel(channel); };
     } catch {
-      // Realtime subscription unavailable (SSR hydrogen or WebSocket not ready)
+      // Realtime subscription unavailable (SSR hydration or WebSocket not ready)
     }
   }, [fetchNodes]);
 
@@ -136,24 +142,33 @@ export function useLatestTelemetry(nodeId?: string) {
 
   useEffect(() => {
     if (!nodeId) return;
-    supabase
-      .from("telemetry_live")
-      .select("rpm, temperature, vibration, current")
-      .eq("node_id", nodeId)
-      .order("timestamp", { ascending: false })
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as TelemetryPoint;
-          setLatest({
-            rpm: d.rpm,
-          temperature: d.temperature,
-          vibration: d.vibration,
-          current: d.current,
-          });
-        }
-      });
+
+    function fetch() {
+      supabase
+        .from("telemetry_live")
+        .select("rpm, temperature, vibration, current, status, status_message")
+        .eq("node_id", nodeId)
+        .order("timestamp", { ascending: false })
+        .limit(1)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            const d = data as TelemetryPoint;
+            setLatest({
+              rpm: d.rpm,
+            temperature: d.temperature,
+            vibration: d.vibration,
+            current: d.current,
+            status: d.status,
+            status_message: d.status_message,
+            });
+          }
+        });
+    }
+
+    fetch();
+    const interval = setInterval(fetch, 10_000);
+    return () => clearInterval(interval);
   }, [nodeId]);
 
   return { latest };
@@ -165,16 +180,23 @@ export function useTelemetryHistory(nodeId?: string, limit = 60) {
 
   useEffect(() => {
     if (!nodeId) { setLoading(false); return; }
-    supabase
-      .from("telemetry_live")
-      .select("*")
-      .eq("node_id", nodeId)
-      .order("timestamp", { ascending: false })
-      .limit(limit)
-      .then(({ data }) => {
-        if (data) setHistory((data as TelemetryPoint[]).reverse());
-        setLoading(false);
-      });
+
+    function fetch() {
+      supabase
+        .from("telemetry_live")
+        .select("*")
+        .eq("node_id", nodeId)
+        .order("timestamp", { ascending: false })
+        .limit(limit)
+        .then(({ data }) => {
+          if (data) setHistory((data as TelemetryPoint[]).reverse());
+          setLoading(false);
+        });
+    }
+
+    fetch();
+    const interval = setInterval(fetch, 10_000);
+    return () => clearInterval(interval);
   }, [nodeId, limit]);
 
   return { history, loading };
@@ -204,4 +226,79 @@ export function useTerminalLogs(nodeId?: string) {
   }, [nodeId]);
 
   return { logs };
+}
+
+export type { FleetHealth };
+
+export function useFleetHealth() {
+  const [health, setHealth] = useState<FleetHealth | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { data: nodes } = await supabase
+        .from("motor_nodes")
+        .select("id, name, type, status, max_rpm, rated_current");
+
+      if (!nodes?.length) {
+        setHealth({ status: "Initializing", message: "No devices registered.", severity: "good" });
+        setLoading(false);
+        return;
+      }
+
+      const { data: telemetry } = await supabase
+        .from("telemetry_live")
+        .select("node_id, temperature, vibration, current, rpm, status, status_message, timestamp")
+        .order("timestamp", { ascending: false })
+        .limit(500);
+
+      const latestPerNode = new Map<string, Record<string, unknown>>();
+      for (const t of (telemetry ?? []) as Record<string, unknown>[]) {
+        const nid = t.node_id as string;
+        if (!latestPerNode.has(nid)) latestPerNode.set(nid, t);
+      }
+
+      const nodesList = nodes as MotorNode[];
+
+      const issues: { name: string; severity: Severity; message: string }[] = [];
+
+      for (const node of nodesList) {
+        const t = latestPerNode.get(node.id) as TelemetryPoint | undefined;
+        const h = getNodeHealth(node, t);
+        if (h.severity !== "good") {
+          issues.push({ name: node.name, severity: h.severity, message: h.message });
+        }
+      }
+
+      issues.sort((a, b) => {
+        const order: Record<string, number> = { critical: 0, degraded: 1, warning: 2 };
+        return (order[a.severity] ?? 3) - (order[b.severity] ?? 3);
+      });
+
+      const topIssues = issues
+        .slice(0, 3)
+        .map((i) => i.message)
+        .join(" ");
+
+      if (issues.length === 0) {
+        setHealth({
+          status: "Good",
+          severity: "good",
+          message: `All ${nodesList.length} devices operational.`,
+        });
+      } else {
+        const worst = issues[0].severity;
+        const label = worst === "critical" ? "Critical" : worst === "degraded" ? "Degraded" : "Warning";
+        setHealth({
+          status: label,
+          severity: worst,
+          message: topIssues + (issues.length > 3 ? ` ${issues.length - 3} more.` : ""),
+        });
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  return { health, loading };
 }

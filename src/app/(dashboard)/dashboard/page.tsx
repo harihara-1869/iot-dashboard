@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMotorNodes, useDashboardKpis } from "@/lib/hooks/useSupabase";
+import { useMotorNodes, useDashboardKpis, useFleetHealth } from "@/lib/hooks/useSupabase";
 import KpiCard from "@/components/ui/kpi-card";
 import FluidStatus from "@/components/ui/fluid-status";
 
@@ -9,6 +9,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { nodes, loading: nodesLoading } = useMotorNodes();
   const { kpis, loading: kpisLoading } = useDashboardKpis();
+  const { health, loading: healthLoading } = useFleetHealth();
 
   const loading = nodesLoading || kpisLoading;
 
@@ -97,7 +98,11 @@ export default function DashboardPage() {
         </section>
 
         <section className="lg:col-span-8">
-          <FluidStatus />
+          <FluidStatus
+            status={healthLoading ? "Initializing" : (health?.status ?? "Good")}
+            message={healthLoading ? "Loading system data..." : (health?.message ?? "")}
+            severity={health?.severity}
+          />
         </section>
       </div>
     </div>

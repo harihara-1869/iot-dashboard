@@ -195,3 +195,235 @@ describe("Supabase hooks", () => {
     ]);
   });
 });
+
+describe("useReauth", () => {
+  let reauthModule: typeof import("@/lib/hooks/useReauth");
+
+  beforeEach(async () => {
+    vi.resetModules();
+  });
+
+  it("isReauthed returns false initially and after clearReauth", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    expect(reauthModule.isReauthed()).toBe(false);
+  });
+
+  it("reauth success sets isReauthed true", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    const { error } = await reauthModule.reauth("op@example.com", "password");
+    expect(error).toBeNull();
+    expect(reauthModule.isReauthed()).toBe(true);
+  });
+
+  it("reauth failure returns error and does not set authed", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: { message: "Invalid login" } }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    const { error } = await reauthModule.reauth("op@example.com", "wrong");
+    expect(error).toBe("Invalid login");
+    expect(reauthModule.isReauthed()).toBe(false);
+  });
+
+  it("clearReauth resets isReauthed", async () => {
+    mocks.client = {
+      auth: {
+        getSession: vi.fn(),
+        signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    reauthModule = await import("@/lib/hooks/useReauth");
+    await reauthModule.reauth("op@example.com", "password");
+    expect(reauthModule.isReauthed()).toBe(true);
+    reauthModule.clearReauth();
+    expect(reauthModule.isReauthed()).toBe(false);
+  });
+});
+
+describe("additional Supabase hooks", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("useFleetHealth evaluates node health across all nodes and reports worst severity", async () => {
+    const motorNodes = createQueryBuilder({
+      select: {
+        data: [
+          { id: "MOT-1", name: "Good", type: "Stepper", status: "Active", max_rpm: 3000, rated_current: "10 A" },
+          { id: "MOT-2", name: "Bad", type: "Stepper", status: "Active", max_rpm: 3000, rated_current: "10 A" },
+        ],
+        error: null,
+      },
+    });
+    const telemetryLive = createQueryBuilder({
+      select: {
+        data: [
+          { node_id: "MOT-2", temperature: 90, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
+          { node_id: "MOT-1", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
+        ],
+        error: null,
+      },
+    });
+    mocks.client = {
+      from: vi.fn((table: string) => {
+        if (table === "motor_nodes") return motorNodes;
+        if (table === "telemetry_live") return telemetryLive;
+        return createQueryBuilder();
+      }),
+    };
+    const { useFleetHealth } = await import("@/lib/hooks/useSupabase");
+
+    const { result } = renderHook(() => useFleetHealth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.health).toMatchObject({
+      severity: "critical",
+      status: "Critical",
+    });
+    expect(result.current.health!.message).toMatch(/Bad.*Anomaly/);
+  });
+
+  it("useFleetHealth returns all-good when no issues exist", async () => {
+    const motorNodes = createQueryBuilder({
+      select: {
+        data: [
+          { id: "MOT-1", name: "A", type: "Stepper", status: "Active", max_rpm: 3000, rated_current: "10 A" },
+          { id: "MOT-2", name: "B", type: "Stepper", status: "Active", max_rpm: 3000, rated_current: "10 A" },
+        ],
+        error: null,
+      },
+    });
+    const telemetryLive = createQueryBuilder({
+      select: {
+        data: [
+          { node_id: "MOT-1", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
+          { node_id: "MOT-2", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
+        ],
+        error: null,
+      },
+    });
+    mocks.client = {
+      from: vi.fn((table: string) => {
+        if (table === "motor_nodes") return motorNodes;
+        if (table === "telemetry_live") return telemetryLive;
+        return createQueryBuilder();
+      }),
+    };
+    const { useFleetHealth } = await import("@/lib/hooks/useSupabase");
+
+    const { result } = renderHook(() => useFleetHealth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.health).toMatchObject({
+      severity: "good",
+      status: "Good",
+    });
+  });
+
+  it("useFleetHealth handles empty node set", async () => {
+    const motorNodes = createQueryBuilder({ select: { data: [], error: null } });
+    mocks.client = { from: vi.fn(() => motorNodes) };
+    const { useFleetHealth } = await import("@/lib/hooks/useSupabase");
+
+    const { result } = renderHook(() => useFleetHealth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.health).toMatchObject({ status: "Initializing", severity: "good" });
+  });
+
+  it("useMotorNode fetches a single node by id", async () => {
+    const motorNodes = createQueryBuilder({
+      single: { data: { id: "MOT-1", name: "Conveyor", status: "Active" }, error: null },
+    });
+    mocks.client = { from: vi.fn(() => motorNodes) };
+    const { useMotorNode } = await import("@/lib/hooks/useSupabase");
+
+    const { result } = renderHook(() => useMotorNode("MOT-1"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.node).toMatchObject({ id: "MOT-1", name: "Conveyor", status: "Active" });
+  });
+
+  it("useMotorNode does nothing with undefined id", async () => {
+    const { useMotorNode } = await import("@/lib/hooks/useSupabase");
+    const { result } = renderHook(() => useMotorNode(undefined));
+    expect(result.current.loading).toBe(true);
+    expect(result.current.node).toBeNull();
+  });
+
+  it("useDiagnosticsLogs fetches paginated logs with total count", async () => {
+    const diagnosticsLogs = createQueryBuilder({
+      select: {
+        data: [
+          { id: "1", check_type: "Database", result: "SUCCESS", performance: "10ms", operator: "OP-1", node_id: null, timestamp: "2026-05-28T00:00:00Z" },
+        ],
+        error: null,
+        count: 15,
+      },
+    });
+    mocks.client = { from: vi.fn(() => diagnosticsLogs) };
+    const { useDiagnosticsLogs } = await import("@/lib/hooks/useSupabase");
+
+    const { result } = renderHook(() => useDiagnosticsLogs(2, 10));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.logs).toHaveLength(1);
+    expect(result.current.totalCount).toBe(15);
+    expect(result.current.totalPages).toBe(2);
+  });
+
+  it("useLatestTelemetry fetches latest snapshot for a node", async () => {
+    const telemetryLive = createQueryBuilder({
+      single: { data: { rpm: 3000, temperature: 42, vibration: 1.2, current: 2.5, status: "ok", status_message: "Normal" }, error: null },
+    });
+    mocks.client = { from: vi.fn(() => telemetryLive) };
+    const { useLatestTelemetry } = await import("@/lib/hooks/useSupabase");
+
+    const { result } = renderHook(() => useLatestTelemetry("MOT-1"));
+    await waitFor(() => expect(result.current.latest).not.toBeNull());
+    expect(result.current.latest).toMatchObject({ rpm: 3000, temperature: 42, status: "ok" });
+  });
+
+  it("useLatestTelemetry returns null for undefined nodeId", async () => {
+    const { useLatestTelemetry } = await import("@/lib/hooks/useSupabase");
+    const { result } = renderHook(() => useLatestTelemetry(undefined));
+    expect(result.current.latest).toBeNull();
+  });
+
+  it("useTelemetryHistory fetches and reverses chronological rows", async () => {
+    const telemetryLive = createQueryBuilder({
+      select: {
+        data: [
+          { node_id: "MOT-1", timestamp: "2026-05-28T00:00:02Z", rpm: 3000, temperature: 42, status: "ok" },
+          { node_id: "MOT-1", timestamp: "2026-05-28T00:00:01Z", rpm: 2900, temperature: 41, status: "ok" },
+        ],
+        error: null,
+      },
+    });
+    mocks.client = { from: vi.fn(() => telemetryLive) };
+    const { useTelemetryHistory } = await import("@/lib/hooks/useSupabase");
+
+    const { result } = renderHook(() => useTelemetryHistory("MOT-1", 60));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.history).toHaveLength(2);
+    expect(result.current.history[0].timestamp).toBe("2026-05-28T00:00:01Z");
+    expect(result.current.history[1].timestamp).toBe("2026-05-28T00:00:02Z");
+  });
+
+  it("useTelemetryHistory sets loading false immediately for undefined nodeId", async () => {
+    const { useTelemetryHistory } = await import("@/lib/hooks/useSupabase");
+    const { result } = renderHook(() => useTelemetryHistory(undefined));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.history).toEqual([]);
+  });
+});

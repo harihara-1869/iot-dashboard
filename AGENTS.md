@@ -20,11 +20,11 @@ The project uses **Vitest** with **React Testing Library** and `jsdom`.
 | `vitest.config.ts` | Vitest config, React plugin, `@/*` path alias, `jsdom` environment |
 | `vitest.setup.ts` | Testing Library cleanup, jest-dom matchers, default public env vars |
 | `tests/helpers/supabase.ts` | Reusable Supabase query-chain mocks and JSON request helper |
-| `tests/api-routes.test.ts` | API route tests with mocked Supabase, Azure IoT Hub, and Event Hubs |
-| `tests/proxy.test.ts` | `src/proxy.ts` route protection tests |
-| `tests/hooks.test.tsx` | `useAuth` and Supabase data hook tests |
-| `tests/components.test.tsx` | Key UI/component behavior tests |
-| `tests/lib.test.ts` | Pure and near-pure `src/lib` utility tests |
+| `tests/api-routes.test.ts` | API route tests — signup, device register/details, diagnostics, password change, telemetry sync |
+| `tests/proxy.test.ts` | `src/proxy.ts` route protection — protected routes, login redirect, email confirmation gate |
+| `tests/hooks.test.tsx` | `useAuth`, `useReauth`, `useSupabase` hooks — fleet health, KPIs, telemetry, diagnostics, terminal |
+| `tests/components.test.tsx` | Key UI components — StatusChip, KpiCard, DeviceCard, DiagnosticsGrid, TerminalWindow, ReauthDialog |
+| `tests/lib.test.ts` | `getNodeHealth` (all severity branches), rate-limit, images, Supabase clients, IoT Hub functions |
 
 ### Test conventions
 
@@ -98,9 +98,14 @@ Auth uses Supabase Auth (email/password), not the custom Passport.js stack that 
 | File | Purpose |
 |---|---|
 | `src/proxy.ts` | Supabase SSR middleware — calls `getUser()`, protects routes, syncs cookies |
-| `src/lib/hooks/useAuth.ts` | Client hook — `signIn()`, `signOut()`, `user`, `loading` via Supabase browser client |
+| `src/lib/hooks/useAuth.ts` | Client hook — `signIn()`, `signOut()`, `resetPassword()`, `user`, `loading` via Supabase browser client |
+| `src/lib/hooks/useReauth.ts` | In-memory 5-min TTL re-auth gate (`isReauthed()`, `reauth()`, `clearReauth()`) — cleared on signOut and password change |
+| `src/components/auth/reauth-dialog.tsx` | Password re-entry modal — gates sensitive operations (register device, diagnostics run, preferences) |
 | `src/app/api/auth/signup/route.ts` | `POST` — calls `signUp()` with email, password, `user_metadata.operator_id` |
-| `src/app/auth/confirm/route.ts` | `GET` — handles email confirmation redirects (`verifyOtp`) |
+| `src/app/api/auth/password/route.ts` | `PATCH` — re-auth with current password, updates password, signs out other sessions |
+| `src/app/auth/confirm/route.ts` | `GET` — handles OTP `verifyOtp` and PKCE `exchangeCodeForSession` email confirmation flows |
+| `src/app/(auth)/forgot-password/page.tsx` | Password reset request form — calls `resetPassword()` |
+| `src/app/(auth)/update-password/page.tsx` | New password entry after email confirmation redirect |
 
 
 ## Proxy (Route Protection) — Next.js 16
@@ -179,7 +184,7 @@ All tokens in `src/app/globals.css` under `@theme`. Never hardcode hex values or
 - `azure-iothub` SDK is server-only. Do not import in client components.
 - Library: `src/lib/iot-hub/index.ts` — `registerDeviceInIotHub()`, `getDeviceStatus()`, `listDevices()`, `deleteDeviceFromIotHub()`
 - API route: `POST /api/devices/register` — requires auth (calls `getUser()`). Creates device in Azure IoT Hub + inserts into Supabase with defaults. Azure IoT Hub failures fail the entire request.
-- API route: `PATCH /api/devices/[id]/details` — requires auth. Updates `type`, `voltage`, `torque`, `max_rpm`, `ip_rating` on an existing node.
+- API route: `PATCH /api/devices/[id]/details` — requires auth. Updates `type`, `voltage`, `torque`, `max_rpm`, `rated_current` on an existing node.
 - API route: `POST /api/diagnostics/run` — requires auth. Pings Azure IoT Hub per-node, checks Supabase DB, measures latencies, inserts results into `diagnostics_logs`
 
 ### SAS Policy Scoping
@@ -241,7 +246,7 @@ See SAS Policy Scoping above. The `iothubowner` key should never be committed to
 1. User clicks "Register New Node" on `/nodes` → opens `RegisterDeviceDialog`
 2. **Step 1**: Enter `device_name` + `location` → POST to `/api/devices/register`
 3. Server generates a slug-based device ID, creates symmetric-key identity in Azure IoT Hub, inserts row into `motor_nodes` with defaults (`type: "Stepper"`, `"---"` for specs)
-4. **Step 2**: `DeviceDetailsForm` — motor type, rated voltage, max RPM, torque, IP rating → PATCH to `/api/devices/[id]/details`. Skippable.
+4. **Step 2**: `DeviceDetailsForm` — motor type, rated voltage, max RPM, torque, rated current → PATCH to `/api/devices/[id]/details`. Skippable.
 5. After step 2 (or skip): Azure credentials displayed once — user copies them to flash onto the ESP32/MCU
 
 ### Calibrate (Update Device Details)
@@ -261,10 +266,9 @@ See SAS Policy Scoping above. The `iothubowner` key should never be committed to
 
 ## Telemetry Ingestion
 
-- **Cron route**: `GET /api/cron/telemetry-sync` — runs every minute via Vercel Cron (`vercel.json`)
+- **Cron route**: `GET /api/cron/telemetry-sync` — runs daily at midnight on Hobby (`vercel.json`: `0 0 * * *`); switch to `* * * * *` on Vercel Pro for 1-min polling.
 - **`@azure/event-hubs`** is server-only (same restriction as `azure-iothub`). Do not import in client components.
-- **`vercel.json`** controls the cron schedule (`* * * * *` — every minute on Pro/Enterprise plans; Hobby plans are limited to once per day, use `0 * * * *` as a fallback).
-- **Schedule**: 1-minute polling interval, events received in 8-second windows, ~10s max message delay.
+- **Schedule**: daily on Hobby (once every 24h); 1-min on Pro (events received in 8s windows, ~10s max message delay).
 - The route uses `SUPABASE_SERVICE_ROLE_KEY` (service role) to bypass RLS — no user session required.
 
 ### Env vars
@@ -290,7 +294,7 @@ See SAS Policy Scoping above. The `iothubowner` key should never be committed to
   "status_message": "Normal operation"
 }
 ```
-2. Vercel Cron hits `GET /api/cron/telemetry-sync` every minute
+2. Vercel Cron hits `GET /api/cron/telemetry-sync` per schedule (`0 0 * * *` on Hobby, `* * * * *` on Pro)
 3. Route creates an `EventHubConsumerClient` (`$Default` consumer group, eventHubName omitted — `EntityPath` in the connection string handles it)
 4. Gets partition IDs, loads last offset from `telemetry_checkpoints` table per partition. Checkpoints older than 24h are discarded (IoT Hub free tier retention is 1 day — stale offsets cause SDK errors).
 5. Subscribes to each partition with its checkpointed offset (`isInclusive: false` — never re-reads). Falls back to `earliestEventPosition` if no checkpoint exists.
@@ -309,6 +313,33 @@ See SAS Policy Scoping above. The `iothubowner` key should never be committed to
 ### Connection string format
 
 The `IOT_HUB_EVENTHUB_CONNECTION` **must** start with `Endpoint=`. If the connection string already contains `EntityPath=...`, omit the `eventHubName` argument from `EventHubConsumerClient` — the SDK reads it from the connection string. Passing a mismatched value causes a runtime error.
+
+## Node Health
+
+Motor health status is computed by a centralized pure function in `src/lib/node-health.ts` — `getNodeHealth(node: MotorNode, telemetry?: TelemetryFields)` returns `{ status, message, severity }` where severity is `good | warning | degraded | critical`.
+
+| Priority | Condition | Severity |
+|---|---|---|
+| 1 | `node.status === "Offline"` | degraded |
+| 2 | `telemetry.status === "critical"` | critical |
+| 3 | `temp > 80°C` or `vib > 4.0 mm/s` | critical |
+| 4 | `telemetry.status === "warning"` or `node.status === "Maintenance"` | warning |
+| 5 | `temp > 50°C` or `vib > 2.5 mm/s` or `cur > 15A` | degraded |
+| 6 | `max_rpm > 0 && rpm > max_rpm * 1.1` | degraded |
+| 7 | `rated_current > 0 && cur > rated_current` | degraded |
+| 8 | `node.status === "Idle"` | good |
+| 9 | Default (Active + no issues) | good |
+
+The same function drives both the dashboard FleetHealth card and the single-node status pill on `/motor/[id]`.
+
+`useFleetHealth()` in `useSupabase.ts` queries all nodes with `select("id, name, type, status, max_rpm, rated_current")` plus latest telemetry, calls `getNodeHealth()` per node, sorts issues by severity, and reports the worst finding. If all nodes are healthy, displays "All N devices operational."
+
+Motor page (`/motor/[id]/page.tsx`) imports `getNodeHealth` directly and passes the full node + latest telemetry — status pill uses `health.severity` with color-coded dot (green=good, amber=warning, orange=degraded, red=critical).
+
+## Loading States
+
+- `src/app/loading.tsx` — spinner shown during navigation to standalone pages that use the root layout (`/motor/[id]`, `/help`, `/contact`, `/privacy`).
+- `src/app/(dashboard)/loading.tsx` — spinner shown during navigation between dashboard-group pages (`/dashboard` ↔ `/nodes` ↔ `/health` ↔ `/terminal` ↔ `/preferences`). Sidebar and topbar remain visible during the transition.
 
 ## Charts
 
@@ -334,7 +365,7 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 
 | Route | Layout | Auth |
 |---|------|-------|
-| `/login`, `/signup` | `(auth)` — LoginHeader + LoginFooter | No |
+| `/login`, `/signup`, `/forgot-password`, `/update-password` | `(auth)` — LoginHeader + LoginFooter | No |
 | `/dashboard`, `/nodes`, `/health`, `/terminal`, `/preferences` | `(dashboard)` — Sidebar + Topbar | Yes |
 | `/motor/[id]` | Standalone (not in any group) — own header with back button | Yes |
 | `/help`, `/contact`, `/privacy` | Standalone — minimal header with Dashboard/Login button | No |
@@ -352,8 +383,6 @@ Centralized in `src/lib/images.ts`. Import `IMAGES` for static paths, `getNodeIm
 
 | # | Task | Notes |
 |---|------|-------|
-| 1 | Account preferences | Password change, linked devices view, session activity (currently placeholder UI) |
+| 1 | Account preferences | Linked devices view, session activity (currently placeholder UI, password change is implemented) |
 | 2 | Reduce session TTL | Supabase dashboard → Authentication → Settings → access token to 15 min, refresh token to 7 days |
-| 3 | Password change endpoint | Invalidate all existing refresh tokens on password change. API route + preferences UI |
-| 4 | Re-auth gating | Require password re-entry before device registration and diagnostics runs |
-| 5 | Remove legacy telemetry field support | `temperature_c`, `vibration_mms`, `current_a`, `voltage_v` still accepted in the ingestion route. Remove backward-compat once all devices send current schema. |
+| 3 | Remove legacy telemetry field support | `temperature_c`, `vibration_mms`, `current_a`, `voltage_v` still accepted in the ingestion route. Remove backward-compat once all devices send current schema. |

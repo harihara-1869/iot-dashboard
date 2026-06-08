@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMotorNode, useLatestTelemetry, useTelemetryHistory } from "@/lib/hooks/useSupabase";
 import MotorVisualization from "@/components/telemetry/motor-visualization";
 import TelemetryCharts from "@/components/telemetry/telemetry-charts";
 import CalibrateDialog from "@/components/nodes/calibrate-dialog";
+import { getNodeHealth } from "@/lib/node-health";
 
 export default function MotorDetailPage() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function MotorDetailPage() {
     );
   }
 
-  const vizNode = latest ? { ...node } : node;
+  const nodeHealth = useMemo(() => getNodeHealth(node, latest), [node, latest]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -85,7 +86,7 @@ export default function MotorDetailPage() {
           </div>
         </div>
 
-        <MotorVisualization node={vizNode} telemetry={latest ?? undefined} />
+        <MotorVisualization node={node} telemetry={latest ?? undefined} health={nodeHealth} />
         <TelemetryCharts data={history} />
       </main>
 
