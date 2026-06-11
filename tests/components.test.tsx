@@ -58,10 +58,10 @@ function node(overrides: Partial<MotorNode> = {}): MotorNode {
 describe("key components", () => {
   it("renders status chips with conditional labels and styles", () => {
     const { rerender } = render(<StatusChip status="Active" />);
-    expect(screen.getByText("Active")).toHaveClass("bg-secondary/10");
+    expect(screen.getByText("Active")).toHaveClass("bg-secondary-container/30");
 
     rerender(<StatusChip status="Maintenance" />);
-    expect(screen.getByText("Maintenance Required")).toHaveClass("text-error");
+    expect(screen.getByText("Maintenance")).toHaveClass("text-error");
 
     rerender(<StatusChip status="Offline" />);
     expect(screen.getByText("Offline")).toHaveClass("bg-surface-dim");

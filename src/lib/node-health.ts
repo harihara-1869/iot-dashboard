@@ -24,11 +24,11 @@ interface TelemetryFields {
 }
 
 export function getNodeHealth(node: MotorNode, telemetry?: TelemetryFields | null): NodeHealth {
-  if (node.status === "Offline") {
+  if (node.status === "Offline" && !telemetry) {
     return { status: "Offline", message: `${node.name} is offline.`, severity: "degraded" };
   }
 
-  const telStatus = telemetry?.status;
+  const telStatus = telemetry?.status?.toLowerCase();
   const msg = telemetry?.status_message;
   const temp = telemetry?.temperature ?? 0;
   const vib = telemetry?.vibration ?? 0;
@@ -55,7 +55,7 @@ export function getNodeHealth(node: MotorNode, telemetry?: TelemetryFields | nul
 
   if (telStatus === "warning" || node.status === "Maintenance") {
     return {
-      status: "Maintenance Required",
+      status: "Maintenance",
       severity: "warning",
       message: `${node.name}${msg ? `: ${msg}` : "requires maintenance"}.`,
     };

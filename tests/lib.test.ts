@@ -19,10 +19,16 @@ function motorNode(overrides: Partial<MotorNode> = {}): MotorNode {
 }
 
 describe("node health", () => {
-  it("returns degraded when node is Offline (highest priority)", async () => {
+  it("returns degraded when node is Offline without telemetry", async () => {
+    const { getNodeHealth } = await import("@/lib/node-health");
+    const result = getNodeHealth(motorNode({ status: "Offline" }));
+    expect(result).toEqual({ status: "Offline", severity: "degraded", message: "Test Motor is offline." });
+  });
+
+  it("lets live telemetry override a stale Offline node status", async () => {
     const { getNodeHealth } = await import("@/lib/node-health");
     const result = getNodeHealth(motorNode({ status: "Offline" }), { status: "critical", temperature: 90 });
-    expect(result).toEqual({ status: "Offline", severity: "degraded", message: "Test Motor is offline." });
+    expect(result).toEqual({ status: "Critical", severity: "critical", message: "Test Motorcritical status reported." });
   });
 
   it("returns critical when telemetry status is critical", async () => {
@@ -41,10 +47,10 @@ describe("node health", () => {
   it("returns warning on telemetry warning or maintenance node status", async () => {
     const { getNodeHealth } = await import("@/lib/node-health");
     expect(getNodeHealth(motorNode(), { status: "warning", status_message: "Temp rising" })).toMatchObject({
-      status: "Maintenance Required", severity: "warning",
+      status: "Maintenance", severity: "warning",
     });
     expect(getNodeHealth(motorNode({ status: "Maintenance" }))).toMatchObject({
-      status: "Maintenance Required", severity: "warning",
+      status: "Maintenance", severity: "warning",
     });
   });
 
