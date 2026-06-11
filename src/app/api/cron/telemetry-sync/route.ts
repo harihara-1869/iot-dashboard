@@ -178,7 +178,7 @@ export async function GET(request: Request) {
         temperature: payload.temperature ?? payload.temperature_c ?? 0,
         vibration: payload.vibration ?? payload.vibration_mms ?? 0,
         current: payload.current ?? payload.current_a ?? 0,
-        status: payload.status ?? "ok",
+        status: (payload.status ?? "ok").toLowerCase(),
         status_message: payload.status_message ?? null,
         partition_id: partitionId,
         event_hub_offset: offset,
@@ -204,7 +204,7 @@ export async function GET(request: Request) {
       const statusUpdates: { id: string; status: string }[] = [];
       for (const row of rows) {
         const s = row.status;
-        if (s === "ok" || s === "Active") {
+        if (s === "ok" || s === "active") {
           statusUpdates.push({ id: row.node_id, status: "Active" });
         } else if (s === "warning" || s === "critical") {
           statusUpdates.push({ id: row.node_id, status: "Maintenance" });

@@ -151,3 +151,9 @@ DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE telemetry_live;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Enable Realtime for motor_nodes (skip if already added)
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE motor_nodes;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

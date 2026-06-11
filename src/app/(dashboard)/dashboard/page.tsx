@@ -4,12 +4,20 @@ import { useRouter } from "next/navigation";
 import { useMotorNodes, useDashboardKpis, useFleetHealth } from "@/lib/hooks/useSupabase";
 import KpiCard from "@/components/ui/kpi-card";
 import FluidStatus from "@/components/ui/fluid-status";
+import type { Severity } from "@/lib/node-health";
+
+const severityColors: Record<Severity, string> = {
+  good: "bg-secondary-container/30 text-on-secondary-fixed border-secondary-container",
+  warning: "bg-amber-100 text-amber-900 border-amber-200",
+  degraded: "bg-orange-100 text-orange-900 border-orange-200",
+  critical: "bg-error/10 text-error border-error/20",
+};
 
 export default function DashboardPage() {
   const router = useRouter();
   const { nodes, loading: nodesLoading } = useMotorNodes();
   const { kpis, loading: kpisLoading } = useDashboardKpis();
-  const { health, loading: healthLoading } = useFleetHealth();
+  const { health, healthByNode, loading: healthLoading } = useFleetHealth();
 
   const loading = nodesLoading || kpisLoading;
 
@@ -75,15 +83,16 @@ export default function DashboardPage() {
                     <p className="font-sans text-[14px] leading-5 text-on-surface-variant">ID: {node.id}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full font-mono text-[12px] leading-4 tracking-[0.05em] font-bold border ${
-                  node.status === "Active"
-                    ? "bg-secondary-container/30 text-on-secondary-fixed border-secondary-container"
-                    : node.status === "Idle"
-                    ? "bg-surface-dim text-on-surface-variant border-outline-variant"
-                    : "bg-error/10 text-error border-error/20"
-                }`}>
-                  {node.status === "Maintenance" ? "Maintenance" : node.status}
-                </span>
+                {(() => {
+                  const nodeHealth = healthByNode.get(node.id);
+                  const sev = nodeHealth?.severity ?? "good";
+                  const label = nodeHealth?.status ?? node.status;
+                  return (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full font-mono text-[12px] leading-4 tracking-[0.05em] font-bold border ${severityColors[sev]}`}>
+                      {label}
+                    </span>
+                  );
+                })()}
               </div>
             ))}
           </div>

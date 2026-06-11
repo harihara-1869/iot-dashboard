@@ -232,6 +232,7 @@ export type { FleetHealth };
 
 export function useFleetHealth() {
   const [health, setHealth] = useState<FleetHealth | null>(null);
+  const [healthByNode, setHealthByNode] = useState<Map<string, { status: string; severity: Severity }>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -242,6 +243,7 @@ export function useFleetHealth() {
 
       if (!nodes?.length) {
         setHealth({ status: "Initializing", message: "No devices registered.", severity: "good" });
+        setHealthByNode(new Map());
         setLoading(false);
         return;
       }
@@ -260,15 +262,19 @@ export function useFleetHealth() {
 
       const nodesList = nodes as MotorNode[];
 
+      const nodeMap = new Map<string, { status: string; severity: Severity }>();
       const issues: { name: string; severity: Severity; message: string }[] = [];
 
       for (const node of nodesList) {
         const t = latestPerNode.get(node.id) as TelemetryPoint | undefined;
         const h = getNodeHealth(node, t);
+        nodeMap.set(node.id, { status: h.status, severity: h.severity });
         if (h.severity !== "good") {
           issues.push({ name: node.name, severity: h.severity, message: h.message });
         }
       }
+
+      setHealthByNode(nodeMap);
 
       issues.sort((a, b) => {
         const order: Record<string, number> = { critical: 0, degraded: 1, warning: 2 };
@@ -298,7 +304,9 @@ export function useFleetHealth() {
       setLoading(false);
     }
     load();
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
-  return { health, loading };
+  return { health, healthByNode, loading };
 }
