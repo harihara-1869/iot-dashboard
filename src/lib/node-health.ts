@@ -21,11 +21,20 @@ interface TelemetryFields {
   rpm?: number;
   status?: string;
   status_message?: string;
+  timestamp?: string;
 }
 
 export function getNodeHealth(node: MotorNode, telemetry?: TelemetryFields | null): NodeHealth {
-  if (node.status === "Offline" && !telemetry) {
+  // If no telemetry or telemetry is 24h+ old, node is offline
+  if (!telemetry) {
     return { status: "Offline", message: `${node.name} is offline.`, severity: "degraded" };
+  }
+
+  if (telemetry.timestamp) {
+    const age = Date.now() - new Date(telemetry.timestamp).getTime();
+    if (age >= 24 * 60 * 60 * 1000) {
+      return { status: "Offline", severity: "degraded", message: `${node.name}: No data for ${Math.round(age / (1000 * 60 * 60))}h.` };
+    }
   }
 
   const telStatus = telemetry?.status?.toLowerCase();

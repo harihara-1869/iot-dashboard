@@ -50,6 +50,7 @@ next-env.d.ts
 *.sln.docstates
 .codex
 .agents
+.commandcode
 
 # playwright traces
 .playwright-mcp/

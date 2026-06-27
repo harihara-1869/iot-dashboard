@@ -261,6 +261,7 @@ describe("additional Supabase hooks", () => {
   });
 
   it("useFleetHealth evaluates node health across all nodes and reports worst severity", async () => {
+    const now = new Date().toISOString();
     const motorNodes = createQueryBuilder({
       select: {
         data: [
@@ -273,8 +274,8 @@ describe("additional Supabase hooks", () => {
     const telemetryLive = createQueryBuilder({
       select: {
         data: [
-          { node_id: "MOT-2", temperature: 90, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
-          { node_id: "MOT-1", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
+          { node_id: "MOT-2", temperature: 90, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: now },
+          { node_id: "MOT-1", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: now },
         ],
         error: null,
       },
@@ -298,6 +299,7 @@ describe("additional Supabase hooks", () => {
   });
 
   it("useFleetHealth returns all-good when no issues exist", async () => {
+    const now = new Date().toISOString();
     const motorNodes = createQueryBuilder({
       select: {
         data: [
@@ -310,8 +312,8 @@ describe("additional Supabase hooks", () => {
     const telemetryLive = createQueryBuilder({
       select: {
         data: [
-          { node_id: "MOT-1", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
-          { node_id: "MOT-2", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: "2026-05-28T01:00:00Z" },
+          { node_id: "MOT-1", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: now },
+          { node_id: "MOT-2", temperature: 42, vibration: 1.0, current: 5, rpm: 2000, status: "ok", status_message: null, timestamp: now },
         ],
         error: null,
       },

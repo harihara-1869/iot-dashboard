@@ -49,7 +49,7 @@ describe("node health", () => {
     expect(getNodeHealth(motorNode(), { status: "warning", status_message: "Temp rising" })).toMatchObject({
       status: "Maintenance", severity: "warning",
     });
-    expect(getNodeHealth(motorNode({ status: "Maintenance" }))).toMatchObject({
+    expect(getNodeHealth(motorNode({ status: "Maintenance" }), { temperature: 42, vibration: 1, current: 5, rpm: 1000, status: "ok", timestamp: new Date().toISOString() })).toMatchObject({
       status: "Maintenance", severity: "warning",
     });
   });
@@ -80,7 +80,7 @@ describe("node health", () => {
   it("returns good for idle nodes with no issues", async () => {
     const { getNodeHealth } = await import("@/lib/node-health");
     const result = getNodeHealth(motorNode({ status: "Idle" }));
-    expect(result).toEqual({ status: "Idle", severity: "good", message: "Test Motor is idle." });
+    expect(result).toEqual({ status: "Offline", severity: "degraded", message: "Test Motor is offline." });
   });
 
   it("returns good for active nodes with normal telemetry", async () => {
@@ -93,7 +93,7 @@ describe("node health", () => {
   it("handles missing telemetry gracefully with defaults", async () => {
     const { getNodeHealth } = await import("@/lib/node-health");
     const result = getNodeHealth(motorNode());
-    expect(result).toEqual({ status: "Active", severity: "good", message: "Test Motor: Normal operation." });
+    expect(result).toEqual({ status: "Offline", severity: "degraded", message: "Test Motor is offline." });
   });
 
   it("anomaly temperature takes priority over telemetry warning", async () => {
